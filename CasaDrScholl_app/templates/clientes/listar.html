@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Clientes</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 6px solid #4CAF50;
+            position: relative;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #4CAF50;
+        }
+
+        .card-item {
+            margin: 5px 0;
+            font-size: 15px;
+        }
+
+        .actions {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        .actions a {
+            margin-left: 10px;
+            text-decoration: none;
+            color: #007BFF;
+            font-weight: bold;
+            border: 1px solid #007BFF;
+            padding: 4px 8px;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+
+        .actions a:hover {
+            background-color: #007BFF;
+            color: white;
+        }
+
+        .add-client {
+            display: block;
+            width: max-content;
+            margin: 0 auto 20px auto;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .add-client:hover {
+            background-color: #45a049;
+        }
+
+        .no-clientes {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            margin-top: 50px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Clientes Registrados</h1>
+
+    <a href="{% url 'crear_cliente' %}" class="add-client">+ Agregar Cliente</a>
+
+    <div class="container">
+        {% for cliente in clientes %}
+            <div class="card">
+                <div class="card-title">
+                    {{ cliente.nombre }} {{ cliente.apellido }}
+                </div>
+
+                <div class="card-item"><strong>Sexo:</strong> {{ cliente.sexo }}</div>
+                <div class="card-item"><strong>Teléfono:</strong> {{ cliente.n_telefono }}</div>
+                <div class="card-item"><strong>Email:</strong> {{ cliente.email }}</div>
+
+                <div class="actions">
+                    <a href="{% url 'editar_cliente' cliente.id_cliente %}">Editar</a>
+                    <a href="{% url 'eliminar_cliente' cliente.id_cliente %}" onclick="return confirm('¿Estás seguro de eliminar este cliente?');">Eliminar</a>
+                </div>
+            </div>
+        {% empty %}
+            <p class="no-clientes">No hay clientes registrados.</p>
+        {% endfor %}
+    </div>
+
+</body>
+</html>
+

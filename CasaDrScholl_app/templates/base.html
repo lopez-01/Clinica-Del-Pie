@@ -1,0 +1,37 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Clínica Dr. Scholl - {% block title %}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>Clínica <span>Dr. Scholl</span></h1>
+      <h2>Salud y bienestar en las mejores manos</h2>
+      <nav>
+        <a href="{% url 'home' %}">Inicio</a>
+        <a href="{% url 'servicios' %}">Servicios</a>
+         <a href="{% url 'operativo' %}">Operativo</a>
+         <a href="{% url 'administrativo' %}">Administrativo</a>
+         <a href="{% url 'lista_clientes' %}">Cliente</a>
+ 
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    {% block content %}
+    {% endblock %}
+  </main>
+
+  <footer>
+    <p>© 2025 Clínica Dr. Scholl | Todos los derechos reservados</p>
+  </footer>
+
+  <script src="{% static 'js/script.js' %}"></script>
+</body>
+</html>

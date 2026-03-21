@@ -1,0 +1,39 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Seleccionar Operativo - Clínica Dr. Scholl</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+</head>
+<body>
+<header>
+    <div class="container">
+        <h1>Clínica <span>Dr. Scholl</span></h1>
+        <h2>Salud y bienestar en las mejores manos</h2>
+        <nav>
+            <a href="{% url 'home' %}">Inicio</a>
+            <a href="{% url 'seleccionar_servicios' %}">Servicios / Citas</a>
+            <a href="{% url 'listar_clientes' %}">Clientes</a>
+        </nav>
+    </div>
+</header>
+
+<main class="container">
+    <h2>Seleccione un Operativo</h2>
+<form method="post" style="margin-top: 20px;">
+    {% csrf_token %}
+    {{ form.operativo.label_tag }}<br>
+        {{ form.operativo }}<br><br>
+    <button type="submit" class="btn">Siguiente</button>
+   
+</form>
+
+</main>
+
+<footer>
+    <p>© 2025 Clínica Dr. Scholl | Todos los derechos reservados</p>
+</footer>
+</body>
+</html>

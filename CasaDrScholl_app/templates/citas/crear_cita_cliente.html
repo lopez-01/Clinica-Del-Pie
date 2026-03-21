@@ -1,0 +1,66 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Crear Cita - Datos del Cliente - Clínica Dr. Scholl</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+</head>
+<body>
+<header>
+    <div class="container">
+        <h1>Clínica <span>Dr. Scholl</span></h1>
+        <h2>Salud y bienestar en las mejores manos</h2>
+        <nav>
+            <a href="{% url 'home' %}">Inicio</a>
+            <a href="{% url 'seleccionar_servicios' %}">Servicios / Citas</a>
+            <a href="{% url 'listar_clientes' %}">Clientes</a>
+        </nav>
+    </div>
+</header>
+
+<main class="container">
+    <h2>Datos del Cliente</h2>
+
+    <h3>Servicios seleccionados:</h3>
+    <ul>
+        {% for servicio in servicios %}
+            <li>{{ servicio.nombre }}</li>
+        {% endfor %}
+    </ul>
+
+   <form method="post">
+    {% csrf_token %}
+    
+    <p>
+      {{ form.nombre.label_tag }}<br>
+      {{ form.nombre }}
+    </p>
+    <p>
+      {{ form.apellido.label_tag }}<br>
+      {{ form.apellido }}
+    </p>
+    <p>
+      {{ form.sexo.label_tag }}<br>
+      {{ form.sexo }}
+    </p>
+    <p>
+      {{ form.n_telefono.label_tag }}<br>
+      {{ form.n_telefono }}
+    </p>
+    <p>
+      {{ form.email.label_tag }} (opcional)<br>
+      {{ form.email }}
+    </p>
+    
+    <button type="submit" class="btn">Siguiente</button>
+</form>
+
+</main>
+
+<footer>
+    <p>© 2025 Clínica Dr. Scholl | Todos los derechos reservados</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,33 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Confirmar Eliminación - Clínica Dr. Scholl</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+</head>
+<body>
+<header>
+    <div class="container">
+        <h1>Clínica <span>Dr. Scholl</span></h1>
+        <h2>Confirmar Eliminación de Cliente</h2>
+    </div>
+</header>
+
+<main class="container">
+    <h2>¿Estás seguro que deseas eliminar al cliente?</h2>
+    <p><strong>{{ cliente.nombre }} {{ cliente.apellido }}</strong></p>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Eliminar</button>
+        <a href="{% url 'listar_clientes' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</main>
+
+<footer>
+    <p>© 2025 Clínica Dr. Scholl | Todos los derechos reservados</p>
+</footer>
+</body>
+</html>

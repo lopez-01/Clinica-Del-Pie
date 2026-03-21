@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Seleccionar Servicios{% endblock %}
+
+{% block content %}
+<h2>Selecciona los servicios para tu cita</h2>
+<form method="post">
+  {% csrf_token %}
+  <div class="servicios-container">
+    {% for servicio in form.servicios.field.queryset %}
+      <label class="btn-servicio">
+        <input type="checkbox" name="servicios" value="{{ servicio.id_servicio }}" />
+        <span>{{ servicio.nombre }}</span>
+      </label>
+    {% endfor %}
+  </div>
+
+ <button type="submit" class="btn-continuar">Continuar</button>
+
+</form>
+
+{% endblock %}
