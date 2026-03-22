@@ -2,72 +2,85 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Clínica Dr. Scholl - {% block title %}{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  {% block css %}{% endblock %}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Clínica Dr. Scholl - {% block title %}{% endblock %}</title>
+
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    {% block css %}{% endblock %}
 </head>
+
 <body>
+
 <header>
-  <!-- <section class="nav-bar">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
+        <img src="{% static 'imagenes/DrScholls_color_logo.png' %}" alt="Clínica Dr. Scholl" height="50px" class="px-2" />
 
-    <div class="logo">
-      <h1>Clínica <span>Dr. Scholl</span></h1>
-      <h2>Salud y bienestar en las mejores manos</h2>
-    </div>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
 
-    <nav>
-      <a href="{% url 'home' %}">Inicio</a>
-      <a href="{% url 'servicios' %}">Servicios</a>
-      <a href="{% url 'operativo' %}">Operativo</a>
-      <a href="{% url 'administrativo' %}">Administrativo</a>
-      <a href="{% url 'lista_clientes' %}">Cliente</a>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{% url 'home' %}">Inicio</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{% url 'servicios' %}">Servicios</a>
+                </li>
+
+                {% if request.user.is_authenticated %}
+                    {% if request.user.personal.administrativo_set.exists %}
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="{% url 'administrativo' %}">Administrativo</a>
+                        </li>
+                    {% endif %}
+
+                    {% if request.user.personal.operativo_set.exists %}
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="{% url 'operativo' %}">Operativo</a>
+                        </li>
+                    {% endif %}
+                {% endif %}
+
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="{% url 'listar_clientes' %}">Cliente</a>
+                </li>
+
+                {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-light btn-sm ms-2">
+                                Cerrar sesión
+                            </button>
+                        </form>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{% url 'login' %}">Login</a>
+                    </li>
+                {% endif %}
+
+            </ul>
+        </div>
     </nav>
-
-  </section> -->
-  <nav class="navbar navbar-expand-lg navbar-light px-4 text-white">
-  <img src="{% static 'imagenes/DrScholls_color_logo.png' %}" alt="Clínica Dr. Scholl" height="50px" class="px-2" />
-  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-    <span class="navbar-toggler-icon"></span>
-  </button>
-  <div class="collapse navbar-collapse" id="navbarNav">
-    <ul class="navbar-nav">
-      <li class="nav-item active">
-        <a class="nav-link text-white" href="{% url 'home' %}">Inicio</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link text-white" href="{% url 'servicios' %}">Servicios</a>
-      </li>
-
-      <li class="nav-item">
-        <a class="nav-link text-white" href="{% url 'operativo' %}">Operativo</a>
-      </li>
-
-      <li class="nav-item">
-        <a class="nav-link text-white" href="{% url 'administrativo' %}">Administrativo</a>
-      </li>
-
-      <li class="nav-item">
-        <a class="nav-link text-white" href="{% url 'lista_clientes' %}">Cliente</a>
-      </li>
-
-    </ul>
-  </div>
-</nav>
 </header>
 
-  <main>
-    {% block content %}
-    {% endblock %}
-  </main>
+<main class="container mt-4">
+    {% block content %}{% endblock %}
+</main>
 
-  <footer>
+<footer class="text-center mt-4">
     <p>© 2025 Clínica Dr. Scholl | Todos los derechos reservados</p>
-  </footer>
+</footer>
 
-  <script src="{% static 'js/script.js' %}"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'js/script.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>

@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.contrib.auth.models import User
 
 
 
@@ -7,14 +7,18 @@ from django.db import models
 #   TABLA: PERSONAL
 # ----------------------
 class Personal(models.Model):
-    id_personal = models.AutoField(primary_key=True, db_column='ID_Personal')  # Agregado PK explícito
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, db_column='user_id')
+
+    id_personal = models.AutoField(primary_key=True, db_column='ID_Personal')
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
     n_telefonico = models.CharField(max_length=15, blank=True, null=True)
     fecha_ingreso = models.DateField()
+    email = models.EmailField(max_length=150, blank=True, null=True)
 
     class Meta:
         db_table = 'Personal'
+        managed = False
 
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
@@ -33,6 +37,7 @@ class Cliente(models.Model):
 
     class Meta:
         db_table = 'Cliente'
+        managed = False
 
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
@@ -49,6 +54,7 @@ class Servicio(models.Model):
 
     class Meta:
         db_table = 'Servicio'
+        managed = False
 
     def __str__(self):
         return self.nombre
@@ -64,6 +70,7 @@ class Factura(models.Model):
 
     class Meta:
         db_table = 'Factura'
+        managed = False
 
     def __str__(self):
         return f"Factura #{self.id_factura}"
@@ -73,7 +80,7 @@ class Factura(models.Model):
 #   TABLA: CITAS
 # ----------------------
 class Cita(models.Model):
-    id_cita = models.AutoField(primary_key=True, db_column='ID_Cita')  # PK explícito
+    id_cita = models.AutoField(primary_key=True, db_column='ID_Cita')
     fechahora = models.DateTimeField(db_column='FechaHora')
     cliente = models.ForeignKey(
         Cliente,
@@ -81,13 +88,22 @@ class Cita(models.Model):
         db_column='ID_Cliente',
         to_field='id_cliente'
     )
+    operativo = models.ForeignKey(
+        'Operativo',
+        on_delete=models.CASCADE,
+        db_column='ID_Operativo',
+        to_field='id_operativo',
+        null=True,
+        blank=True
+    )
+    servicios = models.ManyToManyField(Servicio, through="CitaServicio")
 
     class Meta:
         db_table = 'Citas'
+        managed = False
 
-    def __str__(self):
+    def str(self):
         return f"Cita {self.id_cita} - {self.cliente}"
-
 
 # ----------------------
 #   TABLA: ESTADO
@@ -106,6 +122,7 @@ class Estado(models.Model):
 
     class Meta:
         db_table = 'Estado'
+        managed = False
 
     def __str__(self):
         return f"Estado {self.id_estado} - Cita {self.cita.id_cita}"
@@ -125,6 +142,7 @@ class Administrativo(models.Model):
 
     class Meta:
         db_table = 'Administrativo'
+        managed = False
 
     def __str__(self):
         return f"Administrativo {self.personal}"
@@ -146,6 +164,7 @@ class Registro(models.Model):
 
     class Meta:
         db_table = 'Registro'
+        managed = False
 
     def __str__(self):
         return f"Registro {self.id_registro}"
@@ -165,6 +184,7 @@ class Operativo(models.Model):
 
     class Meta:
         db_table = 'Operativo'
+        managed = False
 
     def __str__(self):
         return f"Operativo {self.personal}"
@@ -187,6 +207,7 @@ class PagoDeServicios(models.Model):
 
     class Meta:
         db_table = 'PagoDeServicios'
+        managed = False
 
     def __str__(self):
         return f"Pago Servicio {self.id_pago}"
@@ -213,6 +234,7 @@ class CitaServicio(models.Model):
     class Meta:
         unique_together = ('cita', 'servicio')
         db_table = 'CitaServicio'
+        managed = False
 
     def __str__(self):
         return f"Cita {self.cita.id_cita} - Servicio {self.servicio.nombre}"
@@ -239,6 +261,7 @@ class ServicioFactura(models.Model):
 
     class Meta:
         db_table = 'Serviciofactura'
+        managed = False
 
     def __str__(self):
         return f"{self.servicio.nombre} -> Factura {self.factura.id_factura}"
@@ -264,6 +287,7 @@ class ServicioOperativo(models.Model):
 
     class Meta:
         db_table = 'ServicioOperativo'
+        managed = False
 
     def __str__(self):
         return f"{self.operativo} -> {self.servicio.nombre}"
@@ -294,6 +318,7 @@ class ExpedienteClinico(models.Model):
 
     class Meta:
         db_table = 'ExpedienteClinico'
+        managed = False
 
     def __str__(self):
         return f"Expediente {self.id_expediente}"

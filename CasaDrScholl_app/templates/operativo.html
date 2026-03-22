@@ -1,18 +1,16 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Inicio{% endblock %}
+{% block title %}Operativo{% endblock %}
 
 {% block content %}
-
 <section>
     <div class="container">
         <h2 class="mb-4">Panel Operativo</h2>
 
-        <!-- Panel de botones grandes para acciones típicas -->
         <div class="row mb-5">
             <div class="col-md-4">
                 <a href="{% url 'seleccionar_servicios' %}" class="btn btn-success w-100 py-3">
-                Registrar Nueva Cita
+                    Registrar Nueva Cita
                 </a>
             </div>
             <div class="col-md-4">
@@ -23,7 +21,6 @@
             </div>
         </div>
 
-        <!-- Listado visual con datos ficticios -->
         <div class="mb-4">
             <h4>Resumen de Citas</h4>
             <table class="table table-striped">
@@ -58,7 +55,6 @@
             </table>
         </div>
 
-        <!-- Panel rápido de estadísticas (solo visual) -->
         <div class="row text-center">
             <div class="col-md-4">
                 <div class="p-3 border rounded">
@@ -79,7 +75,6 @@
                 </div>
             </div>
         </div>
-
     </div>
-</seciton>
+</section>
 {% endblock %}

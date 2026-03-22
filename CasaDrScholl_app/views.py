@@ -1,33 +1,97 @@
+from urllib import request
+
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Servicio, Cliente, Cita, Operativo
+from .models import Servicio, Cliente, Cita, Operativo,  Personal, Administrativo
 from .forms import ClienteForm, ServicioSelectForm, OperativoSelectForm, FechaHoraForm
 from django.urls import reverse
 from datetime import datetime
-from .forms import ClienteForm, ServicioSelectForm, OperativoSelectForm, FechaHoraForm
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 
 
-from django.shortcuts import render
 
+def login_view(request):
+    if request.user.is_authenticated:
+        try:
+            personal = Personal.objects.get(user=request.user)
+            if Administrativo.objects.filter(personal=personal).exists():
+                return redirect('administrativo')
+            elif Operativo.objects.filter(personal=personal).exists():
+                return redirect('operativo')
+        except Personal.DoesNotExist:
+            pass
+        return redirect('home')
+    
+    error = None  # 👈 importante
+
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+
+            try:
+                personal = Personal.objects.get(user=user)
+
+                if Administrativo.objects.filter(personal=personal).exists():
+                    return redirect('administrativo')
+
+                elif Operativo.objects.filter(personal=personal).exists():
+                    return redirect('operativo')
+
+                else:
+                    return redirect('home')
+
+            except Personal.DoesNotExist:
+                return redirect('home')
+        else:
+            error = "Usuario o contraseña incorrectos"  # 👈 aquí
+
+    return render(request, 'login.html', {'error': error})
+
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')
+
+
+@login_required
+def home(request):
+    try:
+        personal = Personal.objects.get(user=request.user)
+
+        if Administrativo.objects.filter(personal=personal).exists():
+            return redirect('administrativo')
+
+        elif Operativo.objects.filter(personal=personal).exists():
+            return redirect('operativo')
+
+    except Personal.DoesNotExist:
+        pass
+
+    return render(request, 'home.html')
+
+@login_required
 def administrativo_view(request):
     return render(request, 'administrativo.html')
+
+
+@login_required
+def operativo_view(request):
+    return render(request, 'operativo.html')
+
 
 def lista_clientes(request):
     return render(request, 'lista_clientes.html')
 
 
-
-def operativo_view(request):
-    return render(request, 'operativo.html')
-
-
-
-def home(request):
-    return render(request, 'home.html')
-
-
 def listar_clientes(request):
     clientes = Cliente.objects.all()
     return render(request, 'clientes/listar.html', {'clientes': clientes})
+
 
 def crear_cliente(request):
     if request.method == 'POST':
@@ -38,6 +102,7 @@ def crear_cliente(request):
     else:
         form = ClienteForm()
     return render(request, 'clientes/crear.html', {'form': form})
+
 
 def editar_cliente(request, id_cliente):
     cliente = get_object_or_404(Cliente, id_cliente=id_cliente)
@@ -58,7 +123,6 @@ def eliminar_cliente(request, id_cliente):
     # Para confirmar eliminación, puedes crear un template o hacer directamente el POST con JS
     return render(request, 'clientes/eliminar_confirmar.html', {'cliente': cliente})
 
-from datetime import datetime
 
 
 def servicios(request):
@@ -76,6 +140,7 @@ def seleccionar_servicios(request):
     else:
         form = ServicioSelectForm()
     return render(request, 'citas/seleccionar_servicios.html', {'form': form})
+
 
 def crear_cita_cliente(request):
     servicios_ids = request.session.get('servicios_seleccionados')
@@ -95,6 +160,7 @@ def crear_cita_cliente(request):
 
     return render(request, 'citas/crear_cita_cliente.html', {'form': form, 'servicios': servicios})
 
+
 def seleccionar_operativo(request):
     if request.method == 'POST':
         form = OperativoSelectForm(request.POST)
@@ -105,6 +171,7 @@ def seleccionar_operativo(request):
     else:
         form = OperativoSelectForm()
     return render(request, 'citas/seleccionar_operativo.html', {'form': form})
+
 
 def seleccionar_fecha_hora(request):
     if request.method == 'POST':
@@ -119,6 +186,7 @@ def seleccionar_fecha_hora(request):
     else:
         form = FechaHoraForm()
     return render(request, 'citas/seleccionar_fecha_hora.html', {'form': form})
+
 
 def confirmar_cita(request):
     servicios_ids = request.session.get('servicios_seleccionados')
