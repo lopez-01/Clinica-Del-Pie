@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+
+<section>
+  <div class="container">
+    <h2 class="mb-4">Panel Administrativo</h2>
+
+    <div class="row mb-5">
+      <div class="col-md-4">
+        <button class="btn btn-primary w-100 py-3">Gestionar Empleados</button>
+      </div>
+      <div class="col-md-4">
+        <button class="btn btn-secondary w-100 py-3">Configurar Servicios</button>
+      </div>
+
+      <div class="collapse mt-4" id="reportesFinancieros">
+  <h4>Reportes Financieros Detallados</h4>
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="card border-primary shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Gastos de Luz</h5>
+          <p class="card-text display-6 text-danger">C$ 3,200</p>
+          <small class="text-muted">Último mes</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-success shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Ingresos Mensuales</h5>
+          <p class="card-text display-6 text-success">C$ 25,000</p>
+          <small class="text-muted">Último mes</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-warning shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Gastos en Materiales</h5>
+          <p class="card-text display-6 text-warning">C$ 7,800</p>
+          <small class="text-muted">Último mes</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-info shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Salarios</h5>
+          <p class="card-text display-6 text-info">C$ 10,500</p>
+          <small class="text-muted">Último mes</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-secondary shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Otros Gastos</h5>
+          <p class="card-text display-6 text-secondary">C$ 1,200</p>
+          <small class="text-muted">Último mes</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+    <div class="col-md-4">
+  <button class="btn btn-info w-100 py-3" type="button" data-bs-toggle="collapse" data-bs-target="#reportesFinancieros" aria-expanded="false" aria-controls="reportesFinancieros">
+    Reportes Financieros
+  </button>
+</div>
+
+    <div class="mb-4">
+      <h4>Resumen Administrativo</h4>
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Área</th>
+            <th>Estado</th>
+            <th>Última Actualización</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Empleados</td>
+            <td><span class="badge bg-success">Actualizado</span></td>
+            <td>2025-12-03</td>
+          </tr>
+          <tr>
+            <td>Servicios</td>
+            <td><span class="badge bg-warning text-dark">Pendiente</span></td>
+            <td>2025-11-30</td>
+          </tr>
+          <tr>
+            <td>Reportes</td>
+            <td><span class="badge bg-danger">Retrasado</span></td>
+            <td>2025-11-25</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="row text-center">
+      <div class="col-md-4">
+        <div class="p-3 border rounded">
+          <h5>Total Empleados</h5>
+          <p class="display-4">12</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="p-3 border rounded">
+          <h5>Servicios Activos</h5>
+          <p class="display-4">8</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="p-3 border rounded">
+          <h5>Reportes Generados</h5>
+          <p class="display-4">5</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</section>
+{% endblock %}

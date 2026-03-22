@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Servicios{% endblock %}
+
+{% block content %}
+<section id="servicios" class="container">
+  <h2>Nuestros Servicios</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Pedicure Clínico</h3>
+      <p>Tratamiento especializado en la salud del pie.</p>
+      <p>Precio: C$400.</p>
+    </div>
+    <div class="card">
+      <h3>Extracción de uñero</h3>
+      <p>Tratamiento y limpieza de uñas encarnadas.</p>
+      <p>Precio: C$250.</p>
+    </div>
+    <div class="card">
+      <h3>Pintura de Shellac</h3>
+      <p>Aplicación de esmalte shellac de larga duración.</p>
+      <p>Precio: C$250.</p>
+    </div>
+    <div class="card">
+      <h3>Retiro de Shellac</h3>
+      <p>Remoción cuidadosa del esmalte shellac.</p>
+      <p>Precio: C$250.</p>
+    </div>
+    <div class="card">
+      <h3>Pintura de pies</h3>
+      <p>Esmaltado profesional de uñas de los pies.</p>
+      <p>Precio: C$80.</p>
+    </div>
+    <div class="card">
+      <h3>Pintura de manos</h3>
+      <p>Esmaltado profesional de uñas de las manos.</p>
+      <p>Precio: C$50.</p>
+    </div>
+    <div class="card">
+      <h3>Manicure</h3>
+      <p>Tratamiento completo para el cuidado de las manos.</p>
+      <p>Precio: C$50.</p>
+    </div>
+  </div>
+  <section id="button" class="container">
+    <a href="{% url 'seleccionar_servicios' %}">
+      <button type="button" class="btn">Solicitar cita</button>
+    </a>
+  </section>
+</section>
+{% endblock %}

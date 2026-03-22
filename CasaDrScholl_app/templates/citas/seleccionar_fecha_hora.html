@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Seleccionar Fecha y Hora{% endblock %}
+
+{% block content %}
+
+<div class="container mt-5">
+
+    <!-- Título -->
+    <div class="text-center mb-4">
+        <h2 class="fw-bold">Seleccionar Fecha y Hora</h2>
+        <p class="text-muted">Elige cuándo deseas agendar la cita</p>
+    </div>
+
+    <!-- Card -->
+    <div class="card shadow-lg border-0">
+        <div class="card-body p-4">
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="row">
+                    <!-- Fecha -->
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label fw-semibold">
+                            {{ form.fecha.label }}
+                        </label>
+                        <div>
+                            {{ form.fecha }}
+                        </div>
+                    </div>
+
+                    <!-- Hora -->
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label fw-semibold">
+                            {{ form.hora.label }}
+                        </label>
+                        {{ form.hora }}
+                    </div>
+                </div>
+
+                <!-- Botón -->
+                <div class="text-end mt-3">
+    <button type="submit" class="btn btn-primary btn-lg px-4">
+        Siguiente →
+    </button>
+</div>
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Datos del Cliente{% endblock %}
+
+{% block content %}
+
+<div class="container mt-5">
+
+    <!-- Título -->
+    <div class="text-center mb-4">
+        <h2 class="fw-bold">Datos del Cliente</h2>
+        <p class="text-muted">Completa la información para continuar con la cita</p>
+    </div>
+
+    <!-- Servicios seleccionados -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">🩺 Servicios seleccionados</h5>
+            <ul class="list-group list-group-flush">
+                {% for servicio in servicios %}
+                    <li class="list-group-item">
+                        {{ servicio.nombre }}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Formulario -->
+    <div class="card shadow">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">{{ form.nombre.label }}</label>
+                        {{ form.nombre }}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">{{ form.apellido.label }}</label>
+                        {{ form.apellido }}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">{{ form.sexo.label }}</label>
+                        {{ form.sexo }}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">{{ form.n_telefono.label }}</label>
+                        {{ form.n_telefono }}
+                    </div>
+
+                    <div class="col-12 mb-3">
+                        <label class="form-label">{{ form.email.label }} (opcional)</label>
+                        {{ form.email }}
+                    </div>
+                </div>
+
+                <!-- Botón -->
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary px-4">
+                        Siguiente →
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

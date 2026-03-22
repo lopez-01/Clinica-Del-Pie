@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+<section id="presentacion" class="pres">
+  <div class="container pres-content">
+    <div class="pres-text">
+      <h2>Presentación de la Clínica</h2>
+      <p>
+        La clínica del pie Dr. Scholl's fue fundada en 2005 siendo la primera clínica del pie en 
+        Nicaragua, aplicando técnicas médicas especializadas de Dr. Scholl's de México. 
+        Contamos con un equipo profesional de podólogos y personal humano al servicio del cliente. 
+        Atendemos extracción de uñero, pedicure de callosidades, extracción de uñas, consultas generales, 
+        tratamiento de pie diabético, entre otros.
+      </p>
+    </div>
+
+    <div class="pres-img">
+      <img src="{% static 'imagenes/DrScholls_color_logo.png' %}" alt="Clínica Dr. Scholl" />
+    </div>
+  </div>
+</section>
+{% endblock %}

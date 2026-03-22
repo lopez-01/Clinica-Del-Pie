@@ -1,0 +1,292 @@
+/* style.css */
+
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f8ff; /* fondo claro */
+    color: #333;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.nav-bar {
+    display: flex;
+    flex-direction: row !important; /* fuerza fila */
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: brown;
+}
+
+header {
+    background-color: #00BFFF;
+    color: white;
+    padding: 0;
+}
+
+header h1 span {
+    font-weight: bold;
+    color: #e0f7ff;
+}
+
+.text-white {
+    font-weight: bold;
+    color: #e0f7ff;
+}
+
+h2 {
+    margin-top: 5px;
+    font-weight: 400;
+    font-size: 1.2rem;
+}
+
+/* nav {
+    margin-top: 15px;
+} */
+
+nav a {
+    color: white;
+    text-decoration: none;
+    margin-right: 20px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: color 0.3s ease;
+}
+
+nav a:hover {
+    color: #a0dfff;
+}
+
+main {
+    padding: 40px 0;
+    flex: 1;
+}
+
+.pres {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 40px;
+}
+
+.pres-text {
+    flex: 1;
+}
+
+.pres-text h2 {
+    color: #00BFFF;
+    font-size: 2rem;
+    margin-bottom: 15px;
+}
+
+.pres-text p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+.pres-img {
+    flex: 1;
+}
+
+.pres-img img {
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+footer {
+    background-color: #00BFFF;
+    color: white;
+    text-align: center;
+    padding: 15px 0;
+    margin-top: 60px;
+    font-size: 0.9rem;
+}
+
+/* Botones */
+
+.btn, .btn2 {
+    background-color: #00BFFF;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    font-size: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn:hover, .btn2:hover {
+    background-color: #0093d0;
+}
+
+/* Otros estilos si los necesitas los ajustamos después */
+/* Estilos para la sección de servicios */
+/* Estilos para la sección de servicios con borde azul celeste */
+#servicios {
+    padding: 40px 0;
+}
+
+#servicios h2 {
+    text-align: center;
+    color: #00BFFF;
+    margin-bottom: 30px;
+    font-size: 2rem;
+}
+
+#servicios .grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+}
+
+#servicios .card {
+    background-color: white; /* Fondo blanco */
+    color: #00BFFF; /* Texto azul celeste */
+    border-radius: 10px;
+    padding: 20px;
+    width: 220px;
+    border: 3px solid #00BFFF; /* Borde azul celeste */
+    box-shadow: 0 4px 10px rgba(0, 191, 255, 0.1); /* Sombra muy sutil */
+    transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+    cursor: default;
+    text-align: center;
+    font-weight: 600;
+}
+
+#servicios .card:hover {
+    background-color: #00BFFF; /* Fondo azul celeste en hover */
+    color: white; /* Texto blanco en hover */
+    box-shadow: 0 6px 15px rgba(0, 191, 255, 0.4);
+    border-color: #0093d0; /* Borde un poco más oscuro al hacer hover */
+}
+
+#servicios .card h3 {
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-size: 1.3rem;
+}
+
+#servicios .card p {
+    margin: 5px 0;
+    font-weight: 400;
+    font-size: 1rem;
+}
+.servicios-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.btn-servicio {
+  display: inline-flex;
+  align-items: center;
+  background-color: white;
+  color: #00BFFF;
+  border: 2px solid #00BFFF;
+  padding: 12px 22px;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.btn-servicio input[type="checkbox"] {
+  display: none; /* Oculta el checkbox real */
+}
+
+.btn-servicio:hover {
+  background-color: #00BFFF;
+  color: white;
+  border-color: #0093d0;
+}
+
+.btn-servicio input[type="checkbox"]:checked + span {
+  background-color: #00BFFF;
+  color: white;
+  border-radius: 30px;
+  padding: 12px 22px;
+  border: 2px solid #0093d0;
+  box-shadow: 0 4px 8px rgba(0, 191, 255, 0.4);
+  transition: all 0.3s ease;
+}
+
+.btn-continuar {
+    background-color: #00BFFF; /* azul celeste */
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    font-size: 1.1rem;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+    margin-top: 20px;
+    display: inline-block;
+    text-align: center;
+    text-decoration: none;
+}
+
+.btn-continuar:hover {
+    background-color: #0093d0; /* azul un poco más oscuro */
+}
+
+/* Estilo para el select personalizado (sexo) */
+.custom-select {
+    width: 100%;
+    max-width: 300px;
+    padding: 10px 15px;
+    font-size: 1rem;
+    border: 2px solid #00BFFF;
+    border-radius: 8px;
+    background-color: white;
+    color: #333;
+    cursor: pointer;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.custom-select:focus {
+    outline: none;
+    border-color: #0093d0;
+    box-shadow: 0 0 5px rgba(0, 147, 208, 0.7);
+}
+
+.servicio-card {
+    cursor: pointer;
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.servicio-card:hover {
+    border-color: #0d6efd;
+    transform: scale(1.03);
+}
+
+.servicio-card input {
+    transform: scale(1.3);
+}
+
+.servicio-card input:checked + span,
+.servicio-card input:checked {
+    accent-color: #0d6efd;
+}

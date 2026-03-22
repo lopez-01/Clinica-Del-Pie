@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+
+<section>
+    <div class="container">
+        <h2 class="mb-4">Panel Operativo</h2>
+
+        <!-- Panel de botones grandes para acciones típicas -->
+        <div class="row mb-5">
+            <div class="col-md-4">
+                <a href="{% url 'seleccionar_servicios' %}" class="btn btn-success w-100 py-3">
+                Registrar Nueva Cita
+                </a>
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-warning w-100 py-3">Ver Citas Pendientes</button>
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-danger w-100 py-3">Cancelar Cita</button>
+            </div>
+        </div>
+
+        <!-- Listado visual con datos ficticios -->
+        <div class="mb-4">
+            <h4>Resumen de Citas</h4>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Juan Pérez</td>
+                        <td>2025-12-05</td>
+                        <td>10:00 AM</td>
+                        <td><span class="badge bg-success">Confirmada</span></td>
+                    </tr>
+                    <tr>
+                        <td>María López</td>
+                        <td>2025-12-06</td>
+                        <td>02:00 PM</td>
+                        <td><span class="badge bg-warning text-dark">Pendiente</span></td>
+                    </tr>
+                    <tr>
+                        <td>Carlos Martínez</td>
+                        <td>2025-12-07</td>
+                        <td>11:30 AM</td>
+                        <td><span class="badge bg-danger">Cancelada</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Panel rápido de estadísticas (solo visual) -->
+        <div class="row text-center">
+            <div class="col-md-4">
+                <div class="p-3 border rounded">
+                    <h5>Total Citas Hoy</h5>
+                    <p class="display-4">8</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 border rounded">
+                    <h5>Citas Confirmadas</h5>
+                    <p class="display-4">5</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 border rounded">
+                    <h5>Citas Pendientes</h5>
+                    <p class="display-4">3</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</seciton>
+{% endblock %}

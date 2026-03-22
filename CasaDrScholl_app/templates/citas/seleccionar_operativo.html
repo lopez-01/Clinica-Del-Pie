@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Seleccionar Operativo{% endblock %}
+
+{% block content %}
+
+<div class="container mt-5">
+
+    <!-- Título -->
+    <div class="text-center mb-4">
+        <h2 class="fw-bold">Seleccionar Operativo</h2>
+        <p class="text-muted">Elige al especialista que atenderá la cita</p>
+    </div>
+
+    <!-- Card -->
+    <div class="card shadow-lg border-0">
+        <div class="card-body p-4">
+
+            <form method="post">
+                {% csrf_token %}
+
+                <!-- Select bonito -->
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">
+                        {{ form.operativo.label }}
+                    </label>
+                    {{ form.operativo }}
+                </div>
+
+                <!-- Botón -->
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-success px-4">
+                        Siguiente →
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

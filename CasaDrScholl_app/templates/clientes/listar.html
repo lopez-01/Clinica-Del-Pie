@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'css/listaCliente.css' %}">
+{% endblock %}
+
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+
+<section>
+
+    <h1 class="LC-h1">Clientes Registrados</h1>
+
+    <a href="{% url 'crear_cliente' %}" class="add-client">+ Agregar Cliente</a>
+
+    <div class="container">
+        {% for cliente in clientes %}
+            <div class="card">
+                <div class="card-title">
+                    {{ cliente.nombre }} {{ cliente.apellido }}
+                </div>
+
+                <div class="card-item"><strong>Sexo:</strong> {{ cliente.sexo }}</div>
+                <div class="card-item"><strong>Teléfono:</strong> {{ cliente.n_telefono }}</div>
+                <div class="card-item"><strong>Email:</strong> {{ cliente.email }}</div>
+
+                <div class="actions">
+                    <a href="{% url 'editar_cliente' cliente.id_cliente %}">Editar</a>
+                    <a href="{% url 'eliminar_cliente' cliente.id_cliente %}" onclick="return confirm('¿Estás seguro de eliminar este cliente?');">Eliminar</a>
+                </div>
+            </div>
+        {% empty %}
+            <p class="no-clientes">No hay clientes registrados.</p>
+        {% endfor %}
+    </div>
+
+</section>
+
+{% endblock %}

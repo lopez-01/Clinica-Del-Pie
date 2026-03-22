@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Confirmar Cita{% endblock %}
+
+{% block content %}
+
+<div class="container mt-5">
+
+    <!-- Título -->
+    <div class="text-center mb-4">
+        <h2 class="fw-bold">Confirmar Cita</h2>
+        <p class="text-muted">Verifica los datos antes de finalizar</p>
+    </div>
+
+    <div class="row">
+
+        <!-- Cliente -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">👤 Cliente</h5>
+                    <p><strong>Nombre:</strong> {{ cliente.nombre }} {{ cliente.apellido }}</p>
+                    <p><strong>Email:</strong> {{ cliente.email }}</p>
+                    <p><strong>Teléfono:</strong> {{ cliente.n_telefono }}</p>
+                    <p><strong>Sexo:</strong> {{ cliente.sexo }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Operativo -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">🧑‍⚕️ Operativo</h5>
+                    <p>{{ operativo.personal.nombre}}  {{operativo.personal.apellido}}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Servicios -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">🩺 Servicios</h5>
+                    <ul class="list-group list-group-flush">
+                        {% for servicio in servicios %}
+                            <li class="list-group-item">{{ servicio.nombre }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fecha -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">📅 Fecha y Hora</h5>
+                    <p class="fs-5">{{ fechahora }}</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Botón -->
+    <div class="text-center mt-4">
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success btn-lg px-5">
+                Confirmar Cita ✔
+            </button>
+        </form>
+    </div>
+
+</div>
+
+{% endblock %}
