@@ -110,9 +110,7 @@ class Cita(models.Model):
 # ----------------------
 class Estado(models.Model):
     id_estado = models.AutoField(primary_key=True, db_column='ID_Estado')  # PK explícito
-    abierta = models.BooleanField(default=False)
-    cerrada = models.BooleanField(default=False)
-    pendiente = models.BooleanField(default=False)
+    nombre_estado = models.CharField(max_length=50, db_column='Nombre_Estado')
     cita = models.ForeignKey(
         Cita,
         on_delete=models.CASCADE,
@@ -125,8 +123,7 @@ class Estado(models.Model):
         managed = False
 
     def __str__(self):
-        return f"Estado {self.id_estado} - Cita {self.cita.id_cita}"
-
+        return f"{self.nombre_estado} (Cita {self.cita.id_cita})"
 
 # ----------------------
 #   TABLA: ADMINISTRATIVO

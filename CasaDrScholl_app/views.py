@@ -1,7 +1,7 @@
 from urllib import request
-
+from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Servicio, Cliente, Cita, Operativo,  Personal, Administrativo
+from .models import Servicio, Cliente, Cita, Operativo,  Personal, Administrativo, Estado
 from .forms import ClienteForm, ServicioSelectForm, OperativoSelectForm, FechaHoraForm
 from django.urls import reverse
 from datetime import datetime
@@ -203,23 +203,28 @@ def confirmar_cita(request):
     servicios = Servicio.objects.filter(id_servicio__in=servicios_ids)
 
     fechahora = datetime.strptime(f"{fecha_str} {hora_str}", '%Y-%m-%d %H:%M')
-    print(cliente)
-    print(operativo)
-    #print(servicios)
-    print(fechahora)
-
 
     if request.method == 'POST':
+        # Crear la cita
         cita = Cita.objects.create(
             fechahora=fechahora,
-            cliente=cliente
-            #operativo=operativo
+            cliente=cliente,
+            operativo=operativo
         )
-        #cita.servicios.set(servicios)
-        # Limpiar sesión si quieres
+        # Asignar los servicios seleccionados
+        cita.servicios.set(servicios)
+
+        # Crear el estado inicial para la cita
+        Estado.objects.create(
+            nombre_estado='Abierta',  # Estado inicial
+            cita=cita
+        )
+
+        # Limpiar sesión
         for key in ['servicios_seleccionados', 'cliente_id', 'operativo_id', 'fecha', 'hora']:
             if key in request.session:
                 del request.session[key]
+
         return redirect('home')
     
 
@@ -230,4 +235,38 @@ def confirmar_cita(request):
         'servicios': servicios,
         'fechahora': fechahora,
     })
+
+def resumen_citas(request):
+    estado_filtro = request.GET.get('estado')
+    citas = Cita.objects.select_related('cliente').all().order_by('-fechahora')
+
+    if estado_filtro:  # Filtrar por estado si se pasa en URL
+        citas = citas.filter(estado__nombre_estado=estado_filtro)
+
+    # Obtener fechas de hoy
+    hoy = timezone.now().date()
+    citas_hoy = citas.filter(fechahora__date=hoy)
+
+    # Contadores dinámicos
+    total_citas_hoy = citas_hoy.count()
+    citas_confirmadas = citas_hoy.filter(estado__nombre_estado='Abierta').count()
+    citas_pendientes = citas_hoy.filter(estado__nombre_estado='Pendiente').count()
+
+    return render(request, 'operativo.html', {
+        'citas': citas,
+        'total_citas_hoy': total_citas_hoy,
+        'citas_confirmadas': citas_confirmadas,
+        'citas_pendientes': citas_pendientes,
+        'estado_filtro': estado_filtro
+    })
+
+def cerrar_cita(request, id_cita):
+    cita = get_object_or_404(Cita, id_cita=id_cita)
+    
+    estado = cita.estado_set.first()
+    if estado:
+        estado.nombre_estado = 'Cerrada'
+        estado.save()
+    
+    return redirect('operativo')  
 
