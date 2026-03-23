@@ -248,15 +248,20 @@ def resumen_citas(request):
     citas_hoy = citas.filter(fechahora__date=hoy)
 
     # Contadores dinámicos
+   
     total_citas_hoy = citas_hoy.count()
     citas_confirmadas = citas_hoy.filter(estado__nombre_estado='Abierta').count()
     citas_pendientes = citas_hoy.filter(estado__nombre_estado='Pendiente').count()
 
+    
+    total_confirmadas = Cita.objects.filter(estado__nombre_estado='Abierta').count()
+    total_pendientes = Cita.objects.filter(estado__nombre_estado='Pendiente').count()
+
     return render(request, 'operativo.html', {
         'citas': citas,
         'total_citas_hoy': total_citas_hoy,
-        'citas_confirmadas': citas_confirmadas,
-        'citas_pendientes': citas_pendientes,
+        'citas_confirmadas': total_confirmadas,
+        'citas_pendientes': total_pendientes,
         'estado_filtro': estado_filtro
     })
 
