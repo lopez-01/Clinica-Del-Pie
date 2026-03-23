@@ -25,46 +25,44 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav">
 
+                <!-- 🏠 INICIO -->
                 <li class="nav-item">
                     <a class="nav-link text-white" href="{% url 'home' %}">Inicio</a>
                 </li>
 
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="{% url 'servicios' %}">Servicios</a>
-                </li>
-
-                {% if request.user.is_authenticated %}
-                    {% if request.user.personal.administrativo_set.exists %}
-                        <li class="nav-item">
-                            <a class="nav-link text-white" href="{% url 'administrativo' %}">Administrativo</a>
-                        </li>
-                    {% endif %}
-
-                    {% if request.user.personal.operativo_set.exists %}
-                        <li class="nav-item">
-                            <a class="nav-link text-white" href="{% url 'operativo' %}">Operativo</a>
-                        </li>
-                    {% endif %}
-                {% endif %}
-
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="{% url 'listar_clientes' %}">Cliente</a>
-                </li>
-
-                {% if user.is_authenticated %}
+                <!-- 👨‍💼 ADMINISTRATIVO -->
+                {% if request.user.personal.administrativo_set.exists %}
                     <li class="nav-item">
-                        <form action="{% url 'logout' %}" method="post" style="display:inline;">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-outline-light btn-sm ms-2">
-                                Cerrar sesión
-                            </button>
-                        </form>
+                        <a class="nav-link text-white" href="{% url 'administrativo' %}">
+                            Panel Administrativo
+                        </a>
                     </li>
-                {% else %}
+
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="{% url 'login' %}">Login</a>
+                        <a class="nav-link text-white" href="{% url 'listar_clientes' %}">
+                            Clientes
+                        </a>
                     </li>
                 {% endif %}
+
+                <!-- 🧑‍⚕️ OPERATIVO -->
+                {% if request.user.personal.operativo_set.exists %}
+                    <li class="nav-item">
+                        <a class="nav-link text-white {% if request.path == '/operativo/' %}active{% endif %}" href="{% url 'operativo' %}">
+                            Panel Operativo
+                        </a>
+                    </li>
+                {% endif %}
+
+                <!-- 🚪 LOGOUT -->
+                <li class="nav-item">
+                    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-light btn-sm ms-2">
+                            Cerrar sesión
+                        </button>
+                    </form>
+                </li>
 
             </ul>
         </div>

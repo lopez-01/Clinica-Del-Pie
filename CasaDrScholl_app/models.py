@@ -75,6 +75,20 @@ class Factura(models.Model):
     def __str__(self):
         return f"Factura #{self.id_factura}"
 
+# ----------------------
+#   TABLA: ESTADO
+# ----------------------
+class Estado(models.Model):
+    id_estado = models.AutoField(primary_key=True, db_column='ID_Estado')
+    nombre_estado = models.CharField(max_length=20, db_column='Nombre_Estado')
+
+    class Meta:
+        db_table = 'Estado'
+        managed = False
+
+    def __str__(self):
+        return self.nombre_estado
+
 
 # ----------------------
 #   TABLA: CITAS
@@ -82,12 +96,14 @@ class Factura(models.Model):
 class Cita(models.Model):
     id_cita = models.AutoField(primary_key=True, db_column='ID_Cita')
     fechahora = models.DateTimeField(db_column='FechaHora')
+
     cliente = models.ForeignKey(
         Cliente,
         on_delete=models.CASCADE,
         db_column='ID_Cliente',
         to_field='id_cliente'
     )
+
     operativo = models.ForeignKey(
         'Operativo',
         on_delete=models.CASCADE,
@@ -96,37 +112,24 @@ class Cita(models.Model):
         null=True,
         blank=True
     )
+
+    estado = models.ForeignKey(
+        Estado,
+        on_delete=models.CASCADE,
+        db_column='ID_Estado',
+        to_field='id_estado',
+        null=True,
+        blank=True
+    )
+
     servicios = models.ManyToManyField(Servicio, through="CitaServicio")
 
     class Meta:
         db_table = 'Citas'
         managed = False
 
-    def str(self):
-        return f"Cita {self.id_cita} - {self.cliente}"
-
-# ----------------------
-#   TABLA: ESTADO
-# ----------------------
-class Estado(models.Model):
-    id_estado = models.AutoField(primary_key=True, db_column='ID_Estado')  # PK explícito
-    abierta = models.BooleanField(default=False)
-    cerrada = models.BooleanField(default=False)
-    pendiente = models.BooleanField(default=False)
-    cita = models.ForeignKey(
-        Cita,
-        on_delete=models.CASCADE,
-        db_column='ID_Cita',
-        to_field='id_cita'
-    )
-
-    class Meta:
-        db_table = 'Estado'
-        managed = False
-
     def __str__(self):
-        return f"Estado {self.id_estado} - Cita {self.cita.id_cita}"
-
+        return f"Cita {self.id_cita} - {self.cliente}"
 
 # ----------------------
 #   TABLA: ADMINISTRATIVO
