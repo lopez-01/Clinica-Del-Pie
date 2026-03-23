@@ -6,9 +6,10 @@
 <div class="container">
     <h2 class="mb-4">Panel Administrativo</h2>
 
+    <!-- Botones principales -->
     <div class="row mb-5">
         <div class="col-md-4">
-            <button class="btn btn-primary w-100 py-3">Gestionar Empleados</button>
+          <a href="{% url 'gestionar_empleados' %}" class="btn btn-primary w-100 py-3">Gestionar Empleados</a>
         </div>
         <div class="col-md-4">
             <button class="btn btn-secondary w-100 py-3">Configurar Servicios</button>
@@ -21,59 +22,23 @@
         </div>
     </div>
 
-    <div class="collapse mt-4" id="reportesFinancieros">
-        <h4>Reportes Financieros Detallados</h4>
-        <div class="row g-3">
-            <!-- tarjetas -->
-        </div>
-    </div>
-
-    <div class="mb-4">
-        <h4>Resumen Administrativo</h4>
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Área</th>
-                    <th>Estado</th>
-                    <th>Última Actualización</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Empleados</td>
-                    <td><span class="badge bg-success">Actualizado</span></td>
-                    <td>2025-12-03</td>
-                </tr>
-                <tr>
-                    <td>Servicios</td>
-                    <td><span class="badge bg-warning text-dark">Pendiente</span></td>
-                    <td>2025-11-30</td>
-                </tr>
-                <tr>
-                    <td>Reportes</td>
-                    <td><span class="badge bg-danger">Retrasado</span></td>
-                    <td>2025-11-25</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
+    <!-- Resumen visual de cada botón -->
     <div class="row text-center">
         <div class="col-md-4">
             <div class="p-3 border rounded">
-                <h5>Total Empleados</h5>
+                <h5>Empleados</h5>
                 <p class="display-4">12</p>
             </div>
         </div>
         <div class="col-md-4">
             <div class="p-3 border rounded">
-                <h5>Servicios Activos</h5>
+                <h5>Servicios</h5>
                 <p class="display-4">8</p>
             </div>
         </div>
         <div class="col-md-4">
             <div class="p-3 border rounded">
-                <h5>Reportes Generados</h5>
+                <h5>Reportes</h5>
                 <p class="display-4">5</p>
             </div>
         </div>

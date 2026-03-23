@@ -1,13 +1,12 @@
 from urllib import request
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Servicio, Cliente, Cita, Operativo,  Personal, Administrativo, Estado
+from .models import Servicio, Cliente, Cita, Operativo, Personal, Administrativo, Estado
 from .forms import ClienteForm, ServicioSelectForm, OperativoSelectForm, FechaHoraForm
 from django.urls import reverse
 from datetime import datetime
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-
 
 
 def login_view(request):
@@ -22,7 +21,7 @@ def login_view(request):
             pass
         return redirect('home')
     
-    error = None  # 👈 importante
+    error = None
 
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -38,17 +37,15 @@ def login_view(request):
 
                 if Administrativo.objects.filter(personal=personal).exists():
                     return redirect('administrativo')
-
                 elif Operativo.objects.filter(personal=personal).exists():
                     return redirect('operativo')
-
                 else:
                     return redirect('home')
 
             except Personal.DoesNotExist:
                 return redirect('home')
         else:
-            error = "Usuario o contraseña incorrectos"  # 👈 aquí
+            error = "Usuario o contraseña incorrectos"
 
     return render(request, 'login.html', {'error': error})
 
@@ -65,7 +62,6 @@ def home(request):
 
         if Administrativo.objects.filter(personal=personal).exists():
             return redirect('administrativo')
-
         elif Operativo.objects.filter(personal=personal).exists():
             return redirect('operativo')
 
@@ -73,6 +69,7 @@ def home(request):
         pass
 
     return render(request, 'home.html')
+
 
 @login_required
 def administrativo_view(request):
@@ -115,14 +112,13 @@ def editar_cliente(request, id_cliente):
         form = ClienteForm(instance=cliente)
     return render(request, 'clientes/editar.html', {'form': form})
 
+
 def eliminar_cliente(request, id_cliente):
     cliente = get_object_or_404(Cliente, id_cliente=id_cliente)
     if request.method == 'POST':
         cliente.delete()
         return redirect('listar_clientes')
-    # Para confirmar eliminación, puedes crear un template o hacer directamente el POST con JS
     return render(request, 'clientes/eliminar_confirmar.html', {'cliente': cliente})
-
 
 
 def servicios(request):
@@ -130,7 +126,6 @@ def servicios(request):
 
 
 def seleccionar_servicios(request):
-    print(Servicio.objects.all())
     if request.method == 'POST':
         form = ServicioSelectForm(request.POST)
         if form.is_valid():
@@ -179,7 +174,6 @@ def seleccionar_fecha_hora(request):
         if form.is_valid():
             fecha = form.cleaned_data['fecha']
             hora = form.cleaned_data['hora']
-            # Guardar la fecha y hora en sesión para confirmar
             request.session['fecha'] = str(fecha)
             request.session['hora'] = str(hora)
             return redirect('confirmar_cita')
@@ -211,23 +205,26 @@ def confirmar_cita(request):
             cliente=cliente,
             operativo=operativo
         )
+
         # Asignar los servicios seleccionados
         cita.servicios.set(servicios)
 
-        # Crear el estado inicial para la cita
-        Estado.objects.create(
-            nombre_estado='Abierta',  # Estado inicial
-            cita=cita
-        )
+        # 🔹 ESTADO INICIAL TEMPORAL
+        # Por ahora usamos 'Pendiente' en lugar de 'Programada' hasta implementar
+        # la lógica de Programada correctamente.
+        try:
+            estado_pendiente = Estado.objects.get(nombre_estado='Pendiente')
+            cita.estado = estado_pendiente
+            cita.save()
+        except Estado.DoesNotExist:
+            # ⚠️ Recomiendo crear el estado 'Pendiente' en la base de datos
+            pass
 
         # Limpiar sesión
         for key in ['servicios_seleccionados', 'cliente_id', 'operativo_id', 'fecha', 'hora']:
-            if key in request.session:
-                del request.session[key]
+            request.session.pop(key, None)
 
         return redirect('home')
-    
-
 
     return render(request, 'citas/confirmar_cita.html', {
         'cliente': cliente,
@@ -236,42 +233,72 @@ def confirmar_cita(request):
         'fechahora': fechahora,
     })
 
+
 def resumen_citas(request):
+    # ✅ ACTUALIZAR AUTOMÁTICAMENTE A "ATENDIDA"
+    ahora = timezone.now()
+
+    try:
+        estado_atendida = Estado.objects.get(nombre_estado='Atendida')
+        Cita.objects.filter(
+            fechahora__lt=ahora
+        ).exclude(
+            estado__nombre_estado='Atendida'
+        ).update(estado=estado_atendida)
+    except Estado.DoesNotExist:
+        pass
+
     estado_filtro = request.GET.get('estado')
     citas = Cita.objects.select_related('cliente').all().order_by('-fechahora')
 
-    if estado_filtro:  # Filtrar por estado si se pasa en URL
+    if estado_filtro:
         citas = citas.filter(estado__nombre_estado=estado_filtro)
 
-    # Obtener fechas de hoy
     hoy = timezone.now().date()
     citas_hoy = citas.filter(fechahora__date=hoy)
 
-    # Contadores dinámicos
-   
     total_citas_hoy = citas_hoy.count()
-    citas_confirmadas = citas_hoy.filter(estado__nombre_estado='Abierta').count()
-    citas_pendientes = citas_hoy.filter(estado__nombre_estado='Pendiente').count()
-
-    
-    total_confirmadas = Cita.objects.filter(estado__nombre_estado='Abierta').count()
-    total_pendientes = Cita.objects.filter(estado__nombre_estado='Pendiente').count()
+    citas_confirmadas = Cita.objects.filter(estado__nombre_estado='Programada').count()
+    citas_pendientes = Cita.objects.filter(estado__nombre_estado='Pendiente').count()
 
     return render(request, 'operativo.html', {
         'citas': citas,
         'total_citas_hoy': total_citas_hoy,
-        'citas_confirmadas': total_confirmadas,
-        'citas_pendientes': total_pendientes,
+        'citas_confirmadas': citas_confirmadas,
+        'citas_pendientes': citas_pendientes,
         'estado_filtro': estado_filtro
     })
 
-def cerrar_cita(request, id_cita):
-    cita = get_object_or_404(Cita, id_cita=id_cita)
-    
-    estado = cita.estado_set.first()
-    if estado:
-        estado.nombre_estado = 'Cerrada'
-        estado.save()
-    
-    return redirect('operativo')  
 
+def cerrar_cita(request, id_cita):
+    """
+    Marca una cita como Cancelada.
+    🔹 Requiere que el estado 'Cancelada' exista en la base de datos.
+    """
+    cita = get_object_or_404(Cita, id_cita=id_cita)
+
+    try:
+        # Obtener el estado 'Cancelada'
+        estado_cancelada = Estado.objects.get(nombre_estado='Cancelada')
+        cita.estado = estado_cancelada
+        cita.save()
+    except Estado.DoesNotExist:
+        # ⚠️ Este caso no debería pasar si ya agregaste 'Cancelada'
+        # Puedes lanzar una alerta o crear automáticamente el estado si quieres
+        pass
+
+    return redirect('operativo')
+
+
+@login_required
+def gestionar_empleados(request):
+    """
+    Muestra todos los empleados en una tabla con:
+    - Nombre
+    - Apellido
+    - Teléfono (N_Telefonico)
+    - Fecha de Ingreso (Fecha_Ingreso)
+    - Email (puede estar vacío)
+    """
+    empleados = Personal.objects.all()
+    return render(request, 'gestionar_empleados.html', {'empleados': empleados})

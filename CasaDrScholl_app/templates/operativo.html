@@ -7,99 +7,106 @@
     <div class="container">
         <h2 class="mb-4">Panel Operativo</h2>
 
-<div class="row mb-5">
-    <div class="col-md-3">
-        <a href="{% url 'seleccionar_servicios' %}" class="btn btn-success w-100 py-3">
-            Registrar Nueva Cita
-        </a>
-    </div>
-    <div class="col-md-3">
-        <a href="{% url 'operativo' %}?estado=Pendiente" class="btn btn-warning w-100 py-3">
-            Ver Citas Pendientes
-        </a>
-    </div>
-    <div class="col-md-3">
-        <a href="{% url 'operativo' %}?estado=Cerrada" class="btn btn-danger w-100 py-3">Ver Citas Cerradas</a>
-    </div>
-    <div class="col-md-3">
-        <a href="{% url 'operativo' %}" class="btn btn-secondary w-100 py-3">
-            Ver Todas las Citas
-        </a>
-    </div>
-</div>
-       <table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Cliente</th>
-            <th>Fecha</th>
-            <th>Hora</th>
-            <th>Estado</th>
-        </tr>
-    </thead>
+        <div class="row mb-5">
+            <div class="col-md-3">
+                <a href="{% url 'seleccionar_servicios' %}" class="btn btn-primary w-100 py-3">
+                    Registrar Nueva Cita
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="{% url 'operativo' %}?estado=Pendiente" class="btn btn-warning w-100 py-3">
+                    Ver Citas Pendientes
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="{% url 'operativo' %}?estado=Atendida" class="btn btn-success w-100 py-3">
+                    Ver Citas Atendidas
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="{% url 'operativo' %}" class="btn btn-secondary w-100 py-3">
+                    Ver Todas las Citas
+                </a>
+            </div>
+        </div>
 
-    <tbody>
-    {% for cita in citas %}
-    <tr>
-        <td>{{ cita.cliente.nombre }} {{ cita.cliente.apellido }}</td>
-        <td>{{ cita.fechahora|date:"Y-m-d" }}</td>
-        <td>{{ cita.fechahora|time:"h:i A" }}</td>
-            <td>
-    {% with estado=cita.estado_set.first %}
-        {% if estado %}
-            <div class="d-flex justify-content-between align-items-center">
-                {% if estado.nombre_estado == 'Abierta' %}
-                    <span class="badge bg-success">Confirmada</span>
-                    <a href="{% url 'cerrar_cita' cita.id_cita %}" 
-                       class="btn btn-sm btn-danger">
-                       Cancelar
-                    </a>
-                {% elif estado.nombre_estado == 'Pendiente' %}
-                    <span class="badge bg-warning text-dark">Pendiente</span>
-                    <a href="{% url 'cerrar_cita' cita.id_cita %}" 
-                       class="btn btn-sm btn-danger">
-                       Cancelar
-                    </a>
-                {% elif estado.nombre_estado == 'Cerrada' %}
-                    <span class="badge bg-danger">Cerrada</span>
-                {% endif %}
-            </div>
-        {% else %}
-            <span class="badge bg-secondary">Sin estado</span>
-        {% endif %}
-    {% endwith %}
-</td>
-    </tr>
-    {% empty %}
-    <tr>
-        <td colspan="4" class="text-center">No hay citas registradas 😢</td>
-    </tr>
-    {% endfor %}
-</tbody>
-</table>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
 
-    <div class="row text-center">
-        <div class="col-md-4">
-            <div class="p-3 border rounded">
-                <h5>Citas Totales</h5>
-                <p class="display-4">{{ citas|length}}</p>
+            <tbody>
+            {% for cita in citas %}
+                <tr>
+                    <td>{{ cita.cliente.nombre }} {{ cita.cliente.apellido }}</td>
+                    <td>{{ cita.fechahora|date:"Y-m-d" }}</td>
+                    <td>{{ cita.fechahora|time:"h:i A" }}</td>
+                    <td>
+                        {% if cita.estado %}
+                            <div class="d-flex justify-content-between align-items-center">
+                                {% if cita.estado.nombre_estado == 'Programada' %}
+                                    <span class="badge bg-success">Programada</span>
+                                    <a href="{% url 'cerrar_cita' cita.id_cita %}" 
+                                       class="btn btn-sm btn-danger">
+                                       Cancelar
+                                    </a>
+
+                                {% elif cita.estado.nombre_estado == 'Pendiente' %}
+                                    <span class="badge bg-warning text-dark">Pendiente</span>
+                                    <a href="{% url 'cerrar_cita' cita.id_cita %}" 
+                                       class="btn btn-sm btn-danger">
+                                       Cancelar
+                                    </a>
+
+                                {% elif cita.estado.nombre_estado == 'Atendida' %}
+                                    <span class="badge bg-success">Atendida</span>
+
+                                {% elif cita.estado.nombre_estado == 'Cancelada' %}
+                                    <span class="badge bg-danger">Cancelada</span>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <span class="badge bg-secondary">Sin estado</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center">No hay citas registradas 😢</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="row text-center">
+            <div class="col-md-4">
+                <div class="p-3 border rounded">
+                    <h5>Citas Totales</h5>
+                    <p class="display-4">{{ citas|length }}</p>
+                </div>
             </div>
-        </div>
-        <div class="col-md-4">
-            <div class="p-3 border rounded">
-                <h5>Total Citas Hoy</h5>
-                <p class="display-4">{{ total_citas_hoy }}</p>
+            <div class="col-md-4">
+                <div class="p-3 border rounded">
+                    <h5>Total Citas Hoy</h5>
+                    <p class="display-4">{{ total_citas_hoy }}</p>
+                </div>
             </div>
-        </div>
-        <div class="col-md-4">
-            <div class="p-3 border rounded">
-                <h5>Citas Confirmadas</h5>
-                <p class="display-4">{{ citas_confirmadas }}</p>
+            <div class="col-md-4">
+                <div class="p-3 border rounded">
+                    <h5>Citas Confirmadas</h5>
+                    <p class="display-4">{{ citas_confirmadas }}</p>
+                </div>
             </div>
-        </div>
-        <div class="col-md-4">
-            <div class="p-3 border rounded">
-                <h5>Citas Pendientes</h5>
-                <p class="display-4">{{ citas_pendientes }}</p>
+            <div class="col-md-4">
+                <div class="p-3 border rounded">
+                    <h5>Citas Pendientes</h5>
+                    <p class="display-4">{{ citas_pendientes }}</p>
+                </div>
             </div>
         </div>
     </div>
