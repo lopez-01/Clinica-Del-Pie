@@ -15,12 +15,63 @@
             <button class="btn btn-secondary w-100 py-3">Configurar Servicios</button>
         </div>
         <div class="col-md-4">
-            <button class="btn btn-info w-100 py-3" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#reportesFinancieros">
-                Reportes Financieros
-            </button>
+                <button class="btn btn-info w-100 py-3" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#reportesFinancieros" aria-expanded="false" aria-controls="reportesFinancieros">
+                    Reportes Financieros
+                </button>
         </div>
     </div>
+
+       <div class="collapse mt-4" id="reportesFinancieros">
+           <h4>Reportes Financieros Detallados</h4>
+           <div class="row g-3">
+               <div class="col-md-4">
+                   <div class="card border-primary shadow-sm">
+                       <div class="card-body">
+                           <h5 class="card-title">Gastos de Luz</h5>
+                           <p class="card-text display-6 text-danger">C$ 3,200</p>
+                           <small class="text-muted">Último mes</small>
+                       </div>
+                   </div>
+               </div>
+               <div class="col-md-4">
+                   <div class="card border-success shadow-sm">
+                      <div class="card-body">
+                          <h5 class="card-title">Ingresos Mensuales</h5>
+                          <p class="card-text display-6 text-success">C$ 25,000</p>
+                          <small class="text-muted">Último mes</small>
+                      </div>
+                  </div>
+               </div>
+                <div class="col-md-4">
+                    <div class="card border-warning shadow-sm">
+                      <div class="card-body">
+                          <h5 class="card-title">Gastos en Materiales</h5>
+                          <p class="card-text display-6 text-warning">C$ 7,800</p>
+                            <small class="text-muted">Último mes</small>
+                      </div>
+                  </div>
+              </div>
+              <div class="col-md-4">
+                  <div class="card border-info shadow-sm">
+                      <div class="card-body">
+                          <h5 class="card-title">Salarios</h5>
+                           <p class="card-text display-6 text-info">C$ 10,500</p>
+                          <small class="text-muted">Último mes</small>
+                      </div>
+                  </div>
+              </div>
+              <div class="col-md-4">
+                  <div class="card border-secondary shadow-sm">
+                      <div class="card-body">
+                          <h5 class="card-title">Otros Gastos</h5>
+                          <p class="card-text display-6 text-secondary">C$ 1,200</p>
+                          <small class="text-muted">Último mes</small>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
 
     <!-- Resumen visual de cada botón -->
     <div class="row text-center">
