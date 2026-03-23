@@ -74,6 +74,9 @@ def home(request):
 
     return render(request, 'home.html')
 
+def landing(request):
+    return render(request, 'web/index.html')
+
 @login_required
 def administrativo_view(request):
     return render(request, 'administrativo.html')
