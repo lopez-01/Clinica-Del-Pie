@@ -7,18 +7,31 @@
     <h2 class="mb-4">Panel Administrativo</h2>
 
     <!-- Botones principales -->
-    <div class="row mb-5">
-        <div class="col-md-4">
-          <a href="{% url 'gestionar_empleados' %}" class="btn btn-primary w-100 py-3">Gestionar Empleados</a>
+        <div class="row mb-5">
+        <div class="col-md-3">
+            <a href="{% url 'gestionar_empleados' %}" class="btn btn-primary w-100 py-3">
+                Gestionar Empleados
+            </a>
         </div>
-        <div class="col-md-4">
-            <button class="btn btn-secondary w-100 py-3">Configurar Servicios</button>
+
+        <div class="col-md-3">
+            <button class="btn btn-secondary w-100 py-3">
+                Configurar Servicios
+            </button>
         </div>
-        <div class="col-md-4">
-                <button class="btn btn-info w-100 py-3" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#reportesFinancieros" aria-expanded="false" aria-controls="reportesFinancieros">
-                    Reportes Financieros
-                </button>
+
+        <div class="col-md-3">
+            <button class="btn btn-info w-100 py-3" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#reportesFinancieros">
+                Reportes Financieros
+            </button>
+        </div>
+
+        <!-- 👇 NUEVO BOTÓN -->
+        <div class="col-md-3">
+            <a href="{% url 'inbox' %}" class="btn btn-dark w-100 py-3">
+                Inbox 📥
+            </a>
         </div>
     </div>
 

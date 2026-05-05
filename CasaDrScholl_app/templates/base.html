@@ -25,10 +25,6 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav">
 
-                <!-- 🏠 INICIO -->
-                <li class="nav-item">
-                    <a class="nav-link text-white" href="{% url 'home' %}">Inicio</a>
-                </li>
 
                 <!-- 👨‍💼 ADMINISTRATIVO -->
                 {% if request.user.personal.administrativo_set.exists %}
@@ -39,7 +35,7 @@
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="{% url 'listar_clientes' %}">
+                        <a class="nav-link text-white" href="{% url 'seleccionar_servicios' %}">
                             Clientes
                         </a>
                     </li>
