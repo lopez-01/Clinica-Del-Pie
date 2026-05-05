@@ -2,13 +2,19 @@
 
 from django.urls import path
 from . import views
-from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('', views.home, name='home'),
+
+    # Landing y propuestas
     path('web/', views.landing, name='landing'),
+    path('web/propuestas/', views.Crear_Propuestas_Citas, name='web_propuestas'),
+
+    # Paneles
     path('administrativo/', views.administrativo_view, name='administrativo'),
     path('operativo/', views.resumen_citas, name='operativo'),
+
+    # Empleados y servicios
     path('empleados/', views.gestionar_empleados, name='gestionar_empleados'),
     path('servicios/', views.servicios, name='servicios'),
 
@@ -25,11 +31,8 @@ urlpatterns = [
     path('citas/seleccionar_fecha_hora/', views.seleccionar_fecha_hora, name='seleccionar_fecha_hora'),
     path('citas/confirmar_cita/', views.confirmar_cita, name='confirmar_cita'),
     path('citas/cerrar/<int:id_cita>/', views.cerrar_cita, name='cerrar_cita'),
-    
 
-    #Login
+    # Login
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
-
 ]
-

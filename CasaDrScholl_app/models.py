@@ -325,3 +325,17 @@ class ExpedienteClinico(models.Model):
 
     def __str__(self):
         return f"Expediente {self.id_expediente}"
+
+
+class Propuestas_Citas(models.Model):
+    Nombre = models.CharField(max_length=100)
+    Email = models.EmailField()
+    Numero_telefonico = models.CharField(max_length=20)
+    Propuesta_De_Dia = models.TextField()
+
+    class Meta:
+        db_table = 'Propuestas_Citas'
+        managed = True
+
+    def __str__(self):
+        return f"{self.Nombre} {self.Email}"

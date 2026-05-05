@@ -1,8 +1,8 @@
 from urllib import request
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Servicio, Cliente, Cita, Operativo, Personal, Administrativo, Estado
-from .forms import ClienteForm, ServicioSelectForm, OperativoSelectForm, FechaHoraForm
+from .models import Servicio, Cliente, Cita, Operativo, Personal, Administrativo, Estado, Propuestas_Citas
+from .forms import ClienteForm, ServicioSelectForm, OperativoSelectForm, FechaHoraForm, PropuestaCitaForm
 from django.urls import reverse
 from datetime import datetime
 from django.contrib.auth import authenticate, login, logout
@@ -304,3 +304,23 @@ def gestionar_empleados(request):
     """
     empleados = Personal.objects.all()
     return render(request, 'gestionar_empleados.html', {'empleados': empleados})
+
+
+def Crear_Propuestas_Citas(request):
+    if request.method == 'POST':
+        form = PropuestaCitaForm(request.POST)
+        if form.is_valid():
+            Propuestas_Citas.objects.create(
+                Nombre=form.cleaned_data['nombre'],
+                Email=form.cleaned_data['email'],
+                Numero_telefonico=form.cleaned_data['numero_telefonico'],
+                Propuesta_De_Dia=form.cleaned_data['propuesta_de_dia'],
+
+            )
+            return render(request, 'web/index.html', {
+            'exito': True
+        })
+    else:
+        form = PropuestaCitaForm()
+
+    return render(request, 'web/index.html', {'form': form})
