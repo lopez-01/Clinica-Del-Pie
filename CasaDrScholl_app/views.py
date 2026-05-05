@@ -87,10 +87,20 @@ def lista_clientes(request):
     return render(request, 'lista_clientes.html')
 
 
+@login_required
 def listar_clientes(request):
-    clientes = Cliente.objects.all()
-    return render(request, 'clientes/listar.html', {'clientes': clientes})
+    try:
+        personal = Personal.objects.get(user=request.user)
+        operativo = Operativo.objects.get(personal=personal)
 
+        clientes = Cliente.objects.filter(
+            cita__operativo=operativo
+        ).distinct()
+
+    except (Personal.DoesNotExist, Operativo.DoesNotExist):
+        clientes = Cliente.objects.none()
+
+    return render(request, 'clientes/listar.html', {'clientes': clientes})
 
 def crear_cliente(request):
     if request.method == 'POST':
@@ -201,7 +211,23 @@ def confirmar_cita(request):
     fechahora = datetime.strptime(f"{fecha_str} {hora_str}", '%Y-%m-%d %H:%M')
 
     if request.method == 'POST':
-        # Crear la cita
+
+        # 🔒 VALIDAR SI EL HORARIO YA ESTÁ OCUPADO
+        conflicto = Cita.objects.filter(
+            operativo=operativo,
+            fechahora=fechahora
+        ).exists()
+
+        if conflicto:
+            return render(request, 'citas/confirmar_cita.html', {
+                'cliente': cliente,
+                'operativo': operativo,
+                'servicios': servicios,
+                'fechahora': fechahora,
+                'error': 'Este horario ya está ocupado para el operativo seleccionado.'
+            })
+
+        # ✅ Crear la cita (solo si NO hay conflicto)
         cita = Cita.objects.create(
             fechahora=fechahora,
             cliente=cliente,
@@ -211,17 +237,13 @@ def confirmar_cita(request):
         # Asignar los servicios seleccionados
         cita.servicios.set(servicios)
 
-        # 🔹 ESTADO INICIAL TEMPORAL
-        # Por ahora usamos 'Pendiente' en lugar de 'Programada' hasta implementar
-        # la lógica de Programada correctamente.
+        # 🔹 ESTADO INICIAL CORRECTO
         try:
-            estado_pendiente = Estado.objects.get(nombre_estado='Pendiente')
-            cita.estado = estado_pendiente
+            estado_programada = Estado.objects.get(nombre_estado='Programada')
+            cita.estado = estado_programada
             cita.save()
         except Estado.DoesNotExist:
-            # ⚠️ Recomiendo crear el estado 'Pendiente' en la base de datos
             pass
-
         # Limpiar sesión
         for key in ['servicios_seleccionados', 'cliente_id', 'operativo_id', 'fecha', 'hora']:
             request.session.pop(key, None)
@@ -236,32 +258,47 @@ def confirmar_cita(request):
     })
 
 
+@login_required    
 def resumen_citas(request):
-    # ✅ ACTUALIZAR AUTOMÁTICAMENTE A "ATENDIDA"
     ahora = timezone.now()
 
+    # 🔒 Obtener operativo del usuario
+    try:
+        personal = Personal.objects.get(user=request.user)
+        operativo = Operativo.objects.get(personal=personal)
+    except (Personal.DoesNotExist, Operativo.DoesNotExist):
+        return redirect('home')
+
+    # ✅ ACTUALIZAR AUTOMÁTICAMENTE A "ATENDIDA" (solo sus citas)
     try:
         estado_atendida = Estado.objects.get(nombre_estado='Atendida')
         Cita.objects.filter(
-            fechahora__lt=ahora
+            fechahora__lt=ahora,
+            operativo=operativo
         ).exclude(
             estado__nombre_estado='Atendida'
         ).update(estado=estado_atendida)
     except Estado.DoesNotExist:
         pass
 
+    # 🔍 FILTRO POR ESTADO
     estado_filtro = request.GET.get('estado')
-    citas = Cita.objects.select_related('cliente').all().order_by('-fechahora')
+
+    # 🔒 SOLO CITAS DEL OPERATIVO
+    citas = Cita.objects.filter(
+        operativo=operativo
+    ).select_related('cliente').order_by('-fechahora')
 
     if estado_filtro:
         citas = citas.filter(estado__nombre_estado=estado_filtro)
 
+    # 📊 MÉTRICAS
     hoy = timezone.now().date()
     citas_hoy = citas.filter(fechahora__date=hoy)
 
     total_citas_hoy = citas_hoy.count()
-    citas_confirmadas = Cita.objects.filter(estado__nombre_estado='Programada').count()
-    citas_pendientes = Cita.objects.filter(estado__nombre_estado='Pendiente').count()
+    citas_confirmadas = citas.filter(estado__nombre_estado='Programada').count()
+    citas_pendientes = citas.filter(estado__nombre_estado='Pendiente').count()
 
     return render(request, 'operativo.html', {
         'citas': citas,
@@ -273,10 +310,7 @@ def resumen_citas(request):
 
 
 def cerrar_cita(request, id_cita):
-    """
-    Marca una cita como Cancelada.
-    🔹 Requiere que el estado 'Cancelada' exista en la base de datos.
-    """
+    
     cita = get_object_or_404(Cita, id_cita=id_cita)
 
     try:

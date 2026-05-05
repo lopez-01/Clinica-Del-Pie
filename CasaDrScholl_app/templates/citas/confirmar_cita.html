@@ -12,6 +12,13 @@
         <p class="text-muted">Verifica los datos antes de finalizar</p>
     </div>
 
+    <!-- 🔴 MENSAJE DE ERROR -->
+    {% if error %}
+        <div class="alert alert-danger text-center">
+            {{ error }}
+        </div>
+    {% endif %}
+
     <div class="row">
 
         <!-- Cliente -->
