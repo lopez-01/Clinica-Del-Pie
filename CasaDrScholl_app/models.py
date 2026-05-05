@@ -328,14 +328,19 @@ class ExpedienteClinico(models.Model):
 
 
 class Propuestas_Citas(models.Model):
+    ID_Propuesta = models.AutoField(primary_key=True)
     Nombre = models.CharField(max_length=100)
-    Email = models.EmailField()
-    Numero_telefonico = models.CharField(max_length=20)
+    Email = models.CharField(max_length=150)
+    Numero_telefonico = models.CharField(max_length=20, null=True, blank=True)
     Propuesta_De_Dia = models.TextField()
+
+    Estado = models.CharField(max_length=20, default='Pendiente')
+    Fecha = models.DateTimeField()
+    Atendida = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'Propuestas_Citas'
-        managed = True
+        managed = False
 
     def __str__(self):
         return f"{self.Nombre} {self.Email}"

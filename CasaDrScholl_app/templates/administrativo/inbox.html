@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Inbox{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Inbox de Solicitudes</h2>
+
+    <table class="table table-striped mt-4">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Teléfono</th>
+                <th>Mensaje</th>
+                <th>Fecha</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for s in solicitudes %}
+            <tr>
+                <td>{{ s.Nombre }}</td>
+                <td>{{ s.Email }}</td>
+                <td>{{ s.Numero_telefonico }}</td>
+                <td>{{ s.Propuesta_De_Dia }}</td>
+                <td>{{ s.Fecha }}</td>
+
+                <td>
+                    <!-- ✔ Crear cita -->
+                    <a href="{% url 'crear_cita_desde_propuesta' s.ID_Propuesta %}" 
+                       class="btn btn-success btn-sm">
+                        Crear Cita
+                    </a>
+
+                    <!-- ❌ Rechazar -->
+                    <a href="{% url 'rechazar_propuesta' s.ID_Propuesta %}" 
+                       class="btn btn-danger btn-sm">
+                        Rechazar
+                    </a>
+                </td>
+            </tr>
+
+        {% empty %}
+            <tr>
+                <td colspan="6" class="text-center">
+                    No hay solicitudes 😢
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

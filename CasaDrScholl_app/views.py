@@ -1,8 +1,9 @@
+from pyexpat.errors import messages
 from urllib import request
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Servicio, Cliente, Cita, Operativo, Personal, Administrativo, Estado, Propuestas_Citas
-from .forms import ClienteForm, ServicioSelectForm, OperativoSelectForm, FechaHoraForm, PropuestaCitaForm
+from .forms import ClienteForm, ServicioSelectForm, OperativoSelectForm, FechaHoraForm
 from django.urls import reverse
 from datetime import datetime
 from django.contrib.auth import authenticate, login, logout
@@ -82,12 +83,63 @@ def administrativo_view(request):
 def operativo_view(request):
     return render(request, 'operativo.html')
 
-
+@login_required
 def lista_clientes(request):
     return render(request, 'lista_clientes.html')
 
 
-@login_required
+def crear_solicitud_web(request):
+    if request.method == 'POST':
+        Propuestas_Citas.objects.create(
+            Nombre=request.POST.get('nombre'),
+            Email=request.POST.get('email'),
+            Numero_telefonico=request.POST.get('numero_telefonico'),
+            Propuesta_De_Dia=request.POST.get('propuesta_de_dia'),
+            Fecha=timezone.now()
+        )
+        return render(request, 'web/index.html', {
+            'success': True
+        })
+
+    messages.success(request, "Solicitud enviada correctamente")
+    return redirect('landing')
+
+
+def inbox(request):
+    solicitudes = Propuestas_Citas.objects.filter(
+        Atendida=False
+    ).order_by('-Fecha')
+
+    return render(request, 'administrativo/inbox.html', {
+        'solicitudes': solicitudes
+    })
+
+def rechazar_propuesta(request, id):
+    propuesta = get_object_or_404(Propuestas_Citas, ID_Propuesta=id)
+
+    propuesta.Atendida = True
+    propuesta.save()
+
+    return redirect('inbox')
+
+
+def crear_cita_desde_propuesta(request, id):
+    propuesta = get_object_or_404(Propuestas_Citas, ID_Propuesta=id)
+
+    request.session['cliente_temp'] = {
+        'nombre': propuesta.Nombre,
+        'apellido': '',
+        'telefono': propuesta.Numero_telefonico,
+        'email': propuesta.Email,
+    }
+
+    request.session['propuesta_id'] = propuesta.ID_Propuesta
+    request.session['flujo_origen'] = 'inbox'
+
+    return redirect('seleccionar_servicios')
+
+
+
 def listar_clientes(request):
     try:
         personal = Personal.objects.get(user=request.user)
@@ -101,6 +153,7 @@ def listar_clientes(request):
         clientes = Cliente.objects.none()
 
     return render(request, 'clientes/listar.html', {'clientes': clientes})
+
 
 def crear_cliente(request):
     if request.method == 'POST':
@@ -143,14 +196,26 @@ def seleccionar_servicios(request):
         if form.is_valid():
             servicios_ids = [s.id_servicio for s in form.cleaned_data['servicios']]
             request.session['servicios_seleccionados'] = servicios_ids
-            return redirect('crear_cita_cliente')
+            request.session.modified = True
+
+            origen = request.session.get('flujo_origen')
+
+            if origen == 'inbox':
+                return redirect('seleccionar_operativo')
+            else:
+                return redirect('crear_cita_cliente')
     else:
         form = ServicioSelectForm()
+
     return render(request, 'citas/seleccionar_servicios.html', {'form': form})
 
 
 def crear_cita_cliente(request):
+
+    if request.session.get('flujo_origen') == 'inbox' and 'cliente_temp' in request.session:
+        return redirect('seleccionar_fecha_hora')
     servicios_ids = request.session.get('servicios_seleccionados')
+
     if not servicios_ids:
         return redirect('seleccionar_servicios')
 
@@ -194,6 +259,11 @@ def seleccionar_fecha_hora(request):
     return render(request, 'citas/seleccionar_fecha_hora.html', {'form': form})
 
 
+def iniciar_cita(request):
+    request.session['flujo_origen'] = 'normal'
+    return redirect('seleccionar_servicios')
+
+
 def confirmar_cita(request):
     servicios_ids = request.session.get('servicios_seleccionados')
     cliente_id = request.session.get('cliente_id')
@@ -201,14 +271,46 @@ def confirmar_cita(request):
     fecha_str = request.session.get('fecha')
     hora_str = request.session.get('hora')
 
-    if not all([servicios_ids, cliente_id, operativo_id, fecha_str, hora_str]):
+    if not all([servicios_ids, operativo_id, fecha_str, hora_str]):
         return redirect('seleccionar_servicios')
 
-    cliente = get_object_or_404(Cliente, id_cliente=cliente_id)
     operativo = get_object_or_404(Operativo, id_operativo=operativo_id)
     servicios = Servicio.objects.filter(id_servicio__in=servicios_ids)
 
     fechahora = datetime.strptime(f"{fecha_str} {hora_str}", '%Y-%m-%d %H:%M')
+
+    # 🔥 CLIENTE DESDE INBOX O NORMAL
+    cliente_temp = request.session.get('cliente_temp')
+
+    if cliente_temp:
+        telefono = cliente_temp.get('telefono')
+        email = cliente_temp.get('email')
+
+        cliente = None
+
+        # 🔍 Buscar por teléfono
+        if telefono:
+            cliente = Cliente.objects.filter(n_telefono=telefono).first()
+
+        # 🔍 Buscar por email si no encontró
+        if not cliente and email:
+            cliente = Cliente.objects.filter(email=email).first()
+
+        # 🆕 Crear si no existe
+        if not cliente:
+            nombre_completo = cliente_temp.get('nombre', '').strip().split()
+
+            nombre = nombre_completo[0] if nombre_completo else ''
+            apellido = " ".join(nombre_completo[1:]) if len(nombre_completo) > 1 else ''
+
+            cliente = Cliente.objects.create(
+                nombre=nombre,
+                apellido=apellido,
+                n_telefono=telefono,
+                email=email
+            )
+    else:
+        cliente = get_object_or_404(Cliente, id_cliente=cliente_id)
 
     if request.method == 'POST':
 
@@ -227,25 +329,45 @@ def confirmar_cita(request):
                 'error': 'Este horario ya está ocupado para el operativo seleccionado.'
             })
 
-        # ✅ Crear la cita (solo si NO hay conflicto)
+        # ✅ Crear la cita
         cita = Cita.objects.create(
             fechahora=fechahora,
             cliente=cliente,
             operativo=operativo
         )
 
-        # Asignar los servicios seleccionados
         cita.servicios.set(servicios)
 
-        # 🔹 ESTADO INICIAL CORRECTO
+        # 🔥 MARCAR PROPUESTA COMO ATENDIDA (INBOX)
+        propuesta_id = request.session.get('propuesta_id')
+
+        if propuesta_id:
+            try:
+                propuesta = Propuestas_Citas.objects.get(ID_Propuesta=propuesta_id)
+                propuesta.Atendida = True
+                propuesta.save()
+            except Propuestas_Citas.DoesNotExist:
+                pass
+
+
         try:
             estado_programada = Estado.objects.get(nombre_estado='Programada')
             cita.estado = estado_programada
             cita.save()
         except Estado.DoesNotExist:
             pass
-        # Limpiar sesión
-        for key in ['servicios_seleccionados', 'cliente_id', 'operativo_id', 'fecha', 'hora']:
+
+        # 🧹 Limpiar sesión
+        for key in [
+            'servicios_seleccionados',
+            'cliente_id',
+            'operativo_id',
+            'fecha',
+            'hora',
+            'cliente_temp',
+            'propuesta_id',
+            'flujo_origen'
+        ]:
             request.session.pop(key, None)
 
         return redirect('home')
@@ -256,7 +378,6 @@ def confirmar_cita(request):
         'servicios': servicios,
         'fechahora': fechahora,
     })
-
 
 @login_required    
 def resumen_citas(request):
@@ -273,11 +394,10 @@ def resumen_citas(request):
     try:
         estado_atendida = Estado.objects.get(nombre_estado='Atendida')
         Cita.objects.filter(
-            fechahora__lt=ahora,
-            operativo=operativo
-        ).exclude(
-            estado__nombre_estado='Atendida'
-        ).update(estado=estado_atendida)
+        fechahora__lt=ahora,
+        operativo=operativo,
+        estado__nombre_estado='Programada'
+    ).update(estado=estado_atendida)
     except Estado.DoesNotExist:
         pass
 
@@ -298,13 +418,13 @@ def resumen_citas(request):
 
     total_citas_hoy = citas_hoy.count()
     citas_confirmadas = citas.filter(estado__nombre_estado='Programada').count()
-    citas_pendientes = citas.filter(estado__nombre_estado='Pendiente').count()
+    citas_canceladas = citas.filter(estado__nombre_estado='Cancelada').count()
 
     return render(request, 'operativo.html', {
         'citas': citas,
         'total_citas_hoy': total_citas_hoy,
         'citas_confirmadas': citas_confirmadas,
-        'citas_pendientes': citas_pendientes,
+        'citas_canceladas': citas_canceladas,
         'estado_filtro': estado_filtro
     })
 
@@ -339,22 +459,3 @@ def gestionar_empleados(request):
     empleados = Personal.objects.all()
     return render(request, 'gestionar_empleados.html', {'empleados': empleados})
 
-
-def Crear_Propuestas_Citas(request):
-    if request.method == 'POST':
-        form = PropuestaCitaForm(request.POST)
-        if form.is_valid():
-            Propuestas_Citas.objects.create(
-                Nombre=form.cleaned_data['nombre'],
-                Email=form.cleaned_data['email'],
-                Numero_telefonico=form.cleaned_data['numero_telefonico'],
-                Propuesta_De_Dia=form.cleaned_data['propuesta_de_dia'],
-
-            )
-            return render(request, 'web/index.html', {
-            'exito': True
-        })
-    else:
-        form = PropuestaCitaForm()
-
-    return render(request, 'web/index.html', {'form': form})

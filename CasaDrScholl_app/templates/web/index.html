@@ -326,8 +326,19 @@
       </section>
 
       <!-- Contact Form-->
-      <form method="POST" action="{% url 'web_propuestas' %}" class="section section-sm section-last bg-default text-left" id="contacts" style="background-color: white">
-  {% csrf_token %}
+
+      {% if messages %}
+    <div class="container mt-3">
+      {% for message in messages %}
+        <div class="alert alert-success">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+      {% endif %}
+
+      <form method="POST" action="{% url 'crear_solicitud_web' %}" class="section section-sm section-last bg-default text-left" id="contacts" style="background-color: white">
+    {% csrf_token %}
 
   <div class="container">
     <article class="title-classic">
@@ -338,8 +349,7 @@
         <p>Programa tu cita y da el primer paso hacia unos pies sanos.</p>
       </div>
     </article>
-
-    <div class="row row-14 gutters-14">
+  <div class="row row-14 gutters-14">
 
       <!-- Nombre -->
       <div class="col-md-4">
