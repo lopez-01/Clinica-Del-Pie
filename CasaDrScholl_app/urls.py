@@ -7,14 +7,17 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
     path('', views.home, name='home'),
     path('web/', views.landing, name='landing'),
+    
     path('citas/iniciar/', views.iniciar_cita, name='iniciar_cita'),
     path('solicitud-web/', views.crear_solicitud_web, name='crear_solicitud_web'),
     path('inbox/', views.inbox, name='inbox'),
     path('propuesta/rechazar/<int:id>/', views.rechazar_propuesta, name='rechazar_propuesta'),
     path('crear-cita-desde-propuesta/<int:id>/', views.crear_cita_desde_propuesta, name='crear_cita_desde_propuesta'),
+
     path('administrativo/', views.administrativo_view, name='administrativo'),
     path('operativo/', views.resumen_citas, name='operativo'),
     path('empleados/', views.gestionar_empleados, name='gestionar_empleados'),
+    path('empleados/<int:id_personal>/', views.detalle_empleado, name='detalle_empleado'),
     path('servicios/', views.servicios, name='servicios'),
 
     # Clientes
