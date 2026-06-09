@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Facturación
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+    <h2 class="mb-4">
+        Gestión de Facturas
+    </h2>
+
+    <div class="mb-4">
+
+        <a href="{% url 'listar_facturas' %}"
+           class="btn btn-secondary">
+            Todas
+        </a>
+
+        <a href="?estado=Pendiente"
+           class="btn btn-warning">
+            Pendientes
+        </a>
+
+        <a href="?estado=Pagada"
+           class="btn btn-success">
+            Pagadas
+        </a>
+
+        <a href="?estado=Anulada"
+           class="btn btn-danger">
+            Anuladas
+        </a>
+
+    </div>
+
+    <div class="card shadow">
+
+        <div class="card-body">
+
+            <table class="table table-hover">
+
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Cliente</th>
+                        <th>Fecha</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                {% for factura in facturas %}
+
+                    <tr>
+
+                        <td>
+                            {{ factura.id_factura }}
+                        </td>
+
+                        <td>
+                            {{ factura.cita.cliente.nombre }}
+                            {{ factura.cita.cliente.apellido }}
+                        </td>
+
+                        <td>
+                            {{ factura.fecha_factura|date:"d/m/Y" }}
+                        </td>
+
+                        <td>
+                            C$ {{ factura.total }}
+                        </td>
+
+                        <td>
+
+                            {% if factura.estado_pago.nombre == "Pagada" %}
+                                <span class="badge bg-success">
+                                    Pagada
+                                </span>
+
+                            {% elif factura.estado_pago.nombre == "Pendiente" %}
+                                <span class="badge bg-warning text-dark">
+                                    Pendiente
+                                </span>
+
+                            {% elif factura.estado_pago.nombre == "Anulada" %}
+                                <span class="badge bg-danger">
+                                    Anulada
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            <a href="{% url 'ver_factura' factura.id_factura %}"
+                               class="btn btn-sm btn-primary">
+                                Ver
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+                        <td colspan="6" class="text-center">
+                            No hay facturas registradas.
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

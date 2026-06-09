@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Pagar Factura{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+    <h3>Factura #{{ factura.id_factura }}</h3>
+
+    <p>Total: C$ {{ factura.total }}</p>
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Método de Pago
+            </label>
+
+            <select name="metodo_pago" class="form-select" required>
+
+                <option value="">Seleccione...</option>
+
+                {% for metodo in metodos %}
+                    <option value="{{ metodo.id_metodopago }}">
+                        {{ metodo.nombre }}
+                    </option>
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+        <button class="btn btn-success">
+            Confirmar Pago
+        </button>
+
+        <a href="{% url 'ver_factura' factura.id_factura %}"
+           class="btn btn-secondary">
+            Cancelar
+        </a>
+
+    </form>
+
+</div>
+
+{% endblock %}

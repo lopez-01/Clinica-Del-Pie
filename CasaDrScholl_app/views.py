@@ -1,8 +1,8 @@
-from pyexpat.errors import messages
+from django.contrib import messages
 from urllib import request
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Servicio, Cliente, Cita, Operativo, Personal, Administrativo, Estado, Propuestas_Citas, ServicioOperativo
+from .models import MetodoPago, Servicio, Cliente, Cita, Operativo, Personal, Administrativo, Estado, Propuestas_Citas, ServicioOperativo, CitaServicio, Factura, ServicioFactura, EstadoPago, MetodoPago
 from .forms import ClienteForm, ServicioSelectForm, OperativoSelectForm, FechaHoraForm
 from django.urls import reverse
 from datetime import datetime
@@ -571,3 +571,209 @@ def detalle_empleado(request, id_personal):
             'ultimas_citas': ultimas_citas,
         }
     )
+
+
+@login_required
+def detalle_cita(request, id_cita):
+
+    cita = get_object_or_404(
+        Cita.objects.select_related(
+            'cliente',
+            'operativo',
+            'estado'
+        ),
+        id_cita=id_cita
+    )
+
+    servicios = cita.servicios.all()
+
+    factura = Factura.objects.filter(
+        cita=cita
+    ).first()
+
+    total = sum(
+        servicio.costo
+        for servicio in servicios
+    )
+
+    return render(
+        request,
+        'citas/detalle_cita.html',
+        {
+            'cita': cita,
+            'servicios': servicios,
+            'total': total,
+            'factura': factura
+        }
+    )
+
+
+@login_required
+def generar_factura(request, id_cita):
+
+    cita = get_object_or_404(
+        Cita,
+        id_cita=id_cita
+    )
+
+    # Evitar duplicados
+    factura_existente = Factura.objects.filter(
+        cita=cita
+    ).first()
+
+    if factura_existente:
+        return redirect(
+            'ver_factura',
+            id_factura=factura_existente.id_factura
+        )
+
+    servicios = cita.servicios.all()
+
+    total = sum(
+        servicio.costo
+        for servicio in servicios
+    )
+
+    estado_pendiente = EstadoPago.objects.get(nombre="Pendiente")
+
+
+    factura = Factura.objects.create(
+        cita=cita,
+        fecha_factura=timezone.now(),
+        estado_pago=estado_pendiente,
+        total=total,
+        metodo_pago=None
+    )
+
+    for servicio in servicios:
+        ServicioFactura.objects.create(
+            factura=factura,
+            servicio=servicio
+        )
+
+    return redirect(
+        'detalle_cita',
+        id_cita=cita.id_cita
+    )
+
+
+@login_required
+def ver_factura(request, id_factura):
+
+    factura = get_object_or_404(
+        Factura.objects.select_related(
+            'cita',
+            'cita__cliente'
+        ),
+        id_factura=id_factura
+    )
+
+    servicios = Servicio.objects.filter(
+        serviciofactura__factura=factura
+    )
+
+    return render(
+        request,
+        'facturas/ver_factura.html',
+        {
+            'factura': factura,
+            'servicios': servicios,
+        }
+    )
+
+
+@login_required
+def listar_facturas(request):
+
+    facturas = Factura.objects.select_related(
+        'cita',
+        'cita__cliente'
+    ).order_by('-fecha_factura')
+
+    estado = request.GET.get('estado')
+
+    if estado:
+        facturas = facturas.filter(
+            estado_pago=estado
+        )
+
+    return render(
+        request,
+        'facturas/listar_facturas.html',
+        {
+            'facturas': facturas,
+            'estado': estado
+        }
+    )
+
+
+@login_required
+def pagar_factura(request, id_factura):
+
+    factura = get_object_or_404(
+        Factura,
+        id_factura=id_factura
+    )
+
+    estado_pagada = EstadoPago.objects.get(
+        nombre='Pagada'
+    )
+
+    factura.estado_pago = estado_pagada
+    factura.save()
+
+    return redirect(
+        'ver_factura',
+        id_factura=factura.id_factura
+    )
+
+@login_required
+def anular_factura(request, id_factura):
+
+    factura = get_object_or_404(
+        Factura,
+        id_factura=id_factura
+    )
+
+    estado_anulada = EstadoPago.objects.get(
+        nombre='Anulada'
+    )
+
+    factura.estado_pago = estado_anulada
+    factura.save()
+
+    return redirect(
+        'ver_factura',
+        id_factura=factura.id_factura
+    )
+
+
+@login_required
+def pagar_factura(request, id_factura):
+
+    factura = get_object_or_404(Factura, id_factura=id_factura)
+
+    # evitar pagar dos veces
+    if factura.estado_pago == 2:  # 'Pagada'
+        return redirect('ver_factura', id_factura=id_factura)
+
+    metodos = MetodoPago.objects.all()
+
+    if request.method == "POST":
+
+        metodo_id = request.POST.get("metodo_pago")
+
+        metodo = get_object_or_404(MetodoPago, id_metodopago=metodo_id)
+
+        estado_pagada = EstadoPago.objects.get(id_estadopago=2)
+
+        factura.estado_pago = estado_pagada
+        factura.metodo_pago = metodo
+        factura.save()
+
+        return redirect('ver_factura', id_factura=id_factura)
+
+    return render(request, "facturas/pagar_factura.html", {
+        "factura": factura,
+        "metodos": metodos
+    })

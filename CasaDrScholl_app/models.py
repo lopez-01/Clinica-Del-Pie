@@ -65,9 +65,32 @@ class Servicio(models.Model):
 #   TABLA: FACTURA
 # ----------------------
 class Factura(models.Model):
-    id_factura = models.AutoField(primary_key=True, db_column='ID_Factura')  # PK explícito
+    
+    id_factura = models.AutoField(primary_key=True, db_column='ID_Factura')
+
+    cita = models.ForeignKey('Cita', on_delete=models.CASCADE, db_column='ID_Cita', to_field='id_cita', null=True,blank=True)
+
+    fecha_factura = models.DateTimeField(db_column='Fecha_Factura', null=True, blank=True)
+
+    estado_pago = models.ForeignKey(
+        'EstadoPago',
+        on_delete=models.SET_NULL,
+        db_column='ID_EstadoPago',
+        to_field='id_estadopago',
+        null=True,
+        blank=True
+    )
+
     total = models.DecimalField(max_digits=10, decimal_places=2)
-    metodo_pago = models.CharField(max_length=50, blank=True, null=True)
+
+    metodo_pago = models.ForeignKey(
+        'MetodoPago',
+        on_delete=models.SET_NULL,
+        db_column='ID_MetodoPago',
+        to_field='id_metodopago',
+        null=True,
+        blank=True
+    )
 
     class Meta:
         db_table = 'Factura'
@@ -75,6 +98,7 @@ class Factura(models.Model):
 
     def __str__(self):
         return f"Factura #{self.id_factura}"
+    
 
 # ----------------------
 #   TABLA: ESTADO
@@ -90,6 +114,49 @@ class Estado(models.Model):
     def __str__(self):
         return self.nombre_estado
 
+
+# ----------------------
+#   TABLA: METODO PAGO
+# ----------------------
+class MetodoPago(models.Model):
+    id_metodopago = models.AutoField(
+        primary_key=True,
+        db_column='ID_MetodoPago'
+    )
+
+    nombre = models.CharField(
+        max_length=50,
+        db_column='Nombre'
+    )
+
+    class Meta:
+        db_table = 'MetodoPago'
+        managed = False
+
+    def __str__(self):
+        return self.nombre
+    
+
+# ----------------------
+#   TABLA: ESTADO PAGO
+# ----------------------
+class EstadoPago(models.Model):
+    id_estadopago = models.AutoField(
+        primary_key=True,
+        db_column='ID_EstadoPago'
+    )
+
+    nombre = models.CharField(
+        max_length=50,
+        db_column='Nombre'
+    )
+
+    class Meta:
+        db_table = 'EstadoPago'
+        managed = False
+
+    def __str__(self):
+        return self.nombre
 
 # ----------------------
 #   TABLA: CITAS
