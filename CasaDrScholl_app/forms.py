@@ -8,8 +8,8 @@ class ClienteForm(forms.ModelForm):
     SEXO_CHOICES = [
         ('M', 'Masculino'),
         ('F', 'Femenino'),
-        ('MD', 'Ola wenas'),
-        ('HP', 'Helicoptero Apache'),
+        ('NB', 'No binario'),
+        ('O', 'Otros'),
     ]
 
     sexo = forms.ChoiceField(

@@ -12,9 +12,11 @@ urlpatterns = [
     path('inbox/', views.inbox, name='inbox'),
     path('propuesta/rechazar/<int:id>/', views.rechazar_propuesta, name='rechazar_propuesta'),
     path('crear-cita-desde-propuesta/<int:id>/', views.crear_cita_desde_propuesta, name='crear_cita_desde_propuesta'),
+
     path('administrativo/', views.administrativo_view, name='administrativo'),
     path('operativo/', views.resumen_citas, name='operativo'),
     path('empleados/', views.gestionar_empleados, name='gestionar_empleados'),
+    path('empleados/<int:id_personal>/', views.detalle_empleado, name='detalle_empleado'),
     path('servicios/', views.servicios, name='servicios'),
 
     # Clientes
@@ -30,7 +32,12 @@ urlpatterns = [
     path('citas/seleccionar_fecha_hora/', views.seleccionar_fecha_hora, name='seleccionar_fecha_hora'),
     path('citas/confirmar_cita/', views.confirmar_cita, name='confirmar_cita'),
     path('citas/cerrar/<int:id_cita>/', views.cerrar_cita, name='cerrar_cita'),
-    
+    path('citas/<int:id_cita>/', views.detalle_cita, name='detalle_cita'),
+    path('citas/generar_factura/<int:id_cita>/', views.generar_factura, name='generar_factura'),
+    path('citas/ver_factura/<int:id_factura>/', views.ver_factura, name='ver_factura'),
+    path('citas/listar_facturas/', views.listar_facturas, name='listar_facturas'),
+    path('citas/pagar_factura/<int:id_factura>/', views.pagar_factura, name='pagar_factura'),
+    path('citas/anular_factura/<int:id_factura>/', views.anular_factura, name='anular_factura'),
 
     #Login
     path('login/', views.login_view, name='login'),

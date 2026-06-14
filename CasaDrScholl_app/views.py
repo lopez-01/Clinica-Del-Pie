@@ -1,8 +1,22 @@
-from pyexpat.errors import messages
-from urllib import request
+from django.contrib import messages
+from django.db.models import Q
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Servicio, Cliente, Cita, Operativo, Personal, Administrativo, Estado, Propuestas_Citas
+from .models import (
+    Servicio,
+    Cliente,
+    Cita,
+    Operativo,
+    Personal,
+    Administrativo,
+    Estado,
+    Propuestas_Citas,
+    ServicioOperativo,
+    Factura,
+    ServicioFactura,
+    EstadoPago,
+    MetodoPago,
+)
 from .forms import ClienteForm, ServicioSelectForm, OperativoSelectForm, FechaHoraForm
 from django.urls import reverse
 from datetime import datetime
@@ -448,14 +462,317 @@ def cerrar_cita(request, id_cita):
 
 @login_required
 def gestionar_empleados(request):
-    """
-    Muestra todos los empleados en una tabla con:
-    - Nombre
-    - Apellido
-    - Teléfono (N_Telefonico)
-    - Fecha de Ingreso (Fecha_Ingreso)
-    - Email (puede estar vacío)
-    """
     empleados = Personal.objects.all()
-    return render(request, 'gestionar_empleados.html', {'empleados': empleados})
 
+    busqueda = request.GET.get('buscar')
+    cargo_filtro = request.GET.get('cargo')
+
+    if busqueda:
+        empleados = empleados.filter(
+            Q(nombre__icontains=busqueda) |
+            Q(apellido__icontains=busqueda)
+        )
+
+    if cargo_filtro == 'Operativo':
+        empleados = empleados.filter(
+            operativo__isnull=False
+        )
+
+    elif cargo_filtro == 'Administrativo':
+        empleados = empleados.filter(
+            administrativo__isnull=False
+        )
+
+    empleados_info = []
+
+    for empleado in empleados:
+
+        if Administrativo.objects.filter(personal=empleado).exists():
+            cargo = "Administrativo"
+
+        elif Operativo.objects.filter(personal=empleado).exists():
+            cargo = "Operativo"
+
+        else:
+            cargo = "Sin asignar"
+
+        empleados_info.append({
+            'empleado': empleado,
+            'cargo': cargo
+        })
+
+    total_empleados = empleados.count()
+    total_operativos = Operativo.objects.count()
+    total_administrativos = Administrativo.objects.count()
+
+    return render(
+        request,
+        'gestionar_empleados.html',
+        {
+            'empleados_info': empleados_info,
+            'total_empleados': total_empleados,
+            'total_operativos': total_operativos,
+            'total_administrativos': total_administrativos,
+            'busqueda': busqueda,
+            'cargo_filtro': cargo_filtro,
+        }
+    )
+
+
+@login_required
+def detalle_empleado(request, id_personal):
+
+    empleado = get_object_or_404(
+        Personal,
+        id_personal=id_personal
+    )
+
+    servicios = []
+    citas_programadas = 0
+    citas_atendidas = 0
+    citas_canceladas = 0
+    ultimas_citas = []
+
+    if Administrativo.objects.filter(personal=empleado).exists():
+        cargo = "Administrativo"
+
+    elif Operativo.objects.filter(personal=empleado).exists():
+        cargo = "Operativo"
+
+        operativo = Operativo.objects.get(personal=empleado)
+
+        citas_programadas = Cita.objects.filter(
+            operativo=operativo,
+            estado__nombre_estado='Programada'
+        ).count()
+
+        citas_atendidas = Cita.objects.filter(
+            operativo=operativo,
+            estado__nombre_estado='Atendida'
+        ).count()
+
+        citas_canceladas = Cita.objects.filter(
+            operativo=operativo,
+            estado__nombre_estado='Cancelada'
+        ).count()
+
+        servicios = ServicioOperativo.objects.filter(
+            operativo=operativo
+        ).select_related('servicio')
+
+
+        ultimas_citas = Cita.objects.filter(
+            operativo=operativo
+        ).select_related(
+            'cliente',
+            'estado'
+        ).order_by('-fechahora')[:5]
+
+    else:
+        cargo = "Sin asignar"
+
+    return render(
+        request,
+        'detalle_empleado.html',
+        {
+            'empleado': empleado,
+            'cargo': cargo,
+            'servicios': servicios,
+            'citas_programadas': citas_programadas,
+            'citas_atendidas': citas_atendidas,
+            'citas_canceladas': citas_canceladas,
+            'ultimas_citas': ultimas_citas,
+        }
+    )
+
+
+@login_required
+def detalle_cita(request, id_cita):
+
+    cita = get_object_or_404(
+        Cita.objects.select_related(
+            'cliente',
+            'operativo',
+            'estado'
+        ),
+        id_cita=id_cita
+    )
+
+    servicios = cita.servicios.all()
+
+    factura = Factura.objects.filter(
+        cita=cita
+    ).first()
+
+    total = sum(
+        servicio.costo
+        for servicio in servicios
+    )
+
+    return render(
+        request,
+        'citas/detalle_cita.html',
+        {
+            'cita': cita,
+            'servicios': servicios,
+            'total': total,
+            'factura': factura
+        }
+    )
+
+
+@login_required
+def generar_factura(request, id_cita):
+
+    cita = get_object_or_404(
+        Cita,
+        id_cita=id_cita
+    )
+
+    # Evitar duplicados
+    factura_existente = Factura.objects.filter(
+        cita=cita
+    ).first()
+
+    if factura_existente:
+        return redirect(
+            'ver_factura',
+            id_factura=factura_existente.id_factura
+        )
+
+    servicios = cita.servicios.all()
+
+    total = sum(
+        servicio.costo
+        for servicio in servicios
+    )
+
+    estado_pendiente = EstadoPago.objects.get(nombre="Pendiente")
+
+
+    factura = Factura.objects.create(
+        cita=cita,
+        fecha_factura=timezone.now(),
+        estado_pago=estado_pendiente,
+        total=total,
+        metodo_pago=None
+    )
+
+    for servicio in servicios:
+        ServicioFactura.objects.create(
+            factura=factura,
+            servicio=servicio
+        )
+
+    return redirect(
+        'detalle_cita',
+        id_cita=cita.id_cita
+    )
+
+
+@login_required
+def ver_factura(request, id_factura):
+
+    factura = get_object_or_404(
+        Factura.objects.select_related(
+            'cita',
+            'cita__cliente',
+            'estado_pago',
+            'metodo_pago'
+        ),
+        id_factura=id_factura
+    )
+
+    servicios = Servicio.objects.filter(
+        serviciofactura__factura=factura
+    )
+
+    return render(
+        request,
+        'facturas/ver_factura.html',
+        {
+            'factura': factura,
+            'servicios': servicios,
+        }
+    )
+
+
+@login_required
+def listar_facturas(request):
+
+    facturas = Factura.objects.select_related(
+        'cita',
+        'cita__cliente',
+        'estado_pago'
+    ).order_by('-fecha_factura')
+
+    estado = request.GET.get('estado')
+
+    if estado:
+        facturas = facturas.filter(
+            estado_pago__nombre=estado
+        )
+
+    return render(
+        request,
+        'facturas/listar_facturas.html',
+        {
+            'facturas': facturas,
+            'estado': estado
+        }
+    )
+
+
+@login_required
+def pagar_factura(request, id_factura):
+
+    factura = get_object_or_404(
+        Factura.objects.select_related('estado_pago'),
+        id_factura=id_factura
+    )
+
+    if factura.estado_pago and factura.estado_pago.nombre == 'Pagada':
+        return redirect('ver_factura', id_factura=id_factura)
+
+    metodos = MetodoPago.objects.all()
+
+    if request.method == "POST":
+
+        metodo_id = request.POST.get("metodo_pago")
+
+        metodo = get_object_or_404(MetodoPago, id_metodopago=metodo_id)
+
+        estado_pagada = get_object_or_404(EstadoPago, nombre='Pagada')
+
+        factura.estado_pago = estado_pagada
+        factura.metodo_pago = metodo
+        factura.save()
+
+        return redirect('ver_factura', id_factura=id_factura)
+
+    return render(request, "facturas/pagar_factura.html", {
+        "factura": factura,
+        "metodos": metodos
+    })
+
+
+@login_required
+def anular_factura(request, id_factura):
+
+    factura = get_object_or_404(
+        Factura,
+        id_factura=id_factura
+    )
+
+    estado_anulada = get_object_or_404(
+        EstadoPago,
+        nombre='Anulada'
+    )
+
+    factura.estado_pago = estado_anulada
+    factura.save()
+
+    return redirect(
+        'ver_factura',
+        id_factura=factura.id_factura
+    )

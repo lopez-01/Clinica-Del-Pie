@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Detalle Empleado
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+    <div class="mb-3">
+        <a href="{% url 'gestionar_empleados' %}"
+           class="btn btn-secondary">
+            ← Volver
+        </a>
+    </div>
+
+    <div class="card shadow">
+
+        <div class="card-header">
+            <h3>
+                {{ empleado.nombre }} {{ empleado.apellido }}
+            </h3>
+        </div>
+
+        <div class="card-body">
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+                    <strong>Usuario</strong><br>
+
+                    {% if empleado.user %}
+                        {{ empleado.user.username }}
+                    {% else %}
+                        <span class="text-muted">Sin usuario asignado</span>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Cargo</strong><br>
+
+                    {% if cargo == "Administrativo" %}
+                        <span class="badge bg-success">
+                            Administrativo
+                        </span>
+
+                    {% elif cargo == "Operativo" %}
+                        <span class="badge bg-primary">
+                            Operativo
+                        </span>
+
+                    {% else %}
+                        <span class="badge bg-secondary">
+                            Sin asignar
+                        </span>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Teléfono</strong><br>
+
+                    {% if empleado.n_telefonico %}
+                        {{ empleado.n_telefonico }}
+                    {% else %}
+                        <span class="text-muted">Sin teléfono</span>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Correo</strong><br>
+
+                    {% if empleado.email %}
+                        {{ empleado.email }}
+                    {% else %}
+                        <span class="text-muted">Sin correo</span>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Fecha de ingreso</strong><br>
+                    {{ empleado.fecha_ingreso }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    {% if cargo == "Operativo" %}
+
+
+        <div class="row mt-4">
+
+            <div class="col-md-4">
+                <div class="card text-center border-primary">
+                    <div class="card-body">
+                        <h6>Programadas</h6>
+                        <h2>{{ citas_programadas }}</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card text-center border-success">
+                    <div class="card-body">
+                        <h6>Atendidas</h6>
+                        <h2>{{ citas_atendidas }}</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card text-center border-danger">
+                    <div class="card-body">
+                        <h6>Canceladas</h6>
+                        <h2>{{ citas_canceladas }}</h2>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="card shadow mt-4">
+
+            <div class="card-header">
+                <h5 class="mb-0">
+                    Servicios Asignados
+                </h5>
+            </div>
+
+            <div class="card-body">
+
+                {% if servicios %}
+
+                    <ul class="list-group">
+
+                        {% for item in servicios %}
+                            <li class="list-group-item">
+                                {{ item.servicio.nombre }}
+                            </li>
+                        {% endfor %}
+
+                    </ul>
+
+                {% else %}
+
+                    <p class="text-muted mb-0">
+                        No tiene servicios asignados.
+                    </p>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+        <div class="card shadow mt-4">
+
+            <div class="card-header">
+                <h5 class="mb-0">
+                    Últimas Citas
+                </h5>
+            </div>
+
+            <div class="card-body">
+
+                {% if ultimas_citas %}
+
+                <table class="table table-sm table-hover">
+
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for cita in ultimas_citas %}
+                        <tr>
+
+                            <td>
+                                {{ cita.fechahora }}
+                            </td>
+
+                            <td>
+                                {{ cita.cliente.nombre }}
+                                {{ cita.cliente.apellido }}
+                            </td>
+
+                            <td>
+
+                                {% if cita.estado.nombre_estado == "Programada" %}
+                                    <span class="badge bg-primary">
+                                        Programada
+                                    </span>
+
+                                {% elif cita.estado.nombre_estado == "Atendida" %}
+                                    <span class="badge bg-success">
+                                        Atendida
+                                    </span>
+
+                                {% elif cita.estado.nombre_estado == "Cancelada" %}
+                                    <span class="badge bg-danger">
+                                        Cancelada
+                                    </span>
+
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        {{ cita.estado.nombre_estado }}
+                                    </span>
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+                {% else %}
+
+                    <p class="text-muted mb-0">
+                        No hay citas registradas.
+                    </p>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}
