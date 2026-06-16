@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Crear cita{% endblock %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <h3>Crear cita desde calendario</h3>
+
+    {% if error %}
+        <div class="alert alert-danger">
+            {{ error }}
+        </div>
+    {% endif %}
+
+    <div class="card p-3 mt-3">
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="mb-2">
+                <strong>Fecha:</strong> {{ fecha }}
+            </div>
+
+            <div class="mb-3">
+                <strong>Hora:</strong> {{ hora }}
+            </div>
+
+            <hr>
+
+            <label class="form-label">Cliente</label>
+            <select name="cliente" class="form-control" required>
+                {% for c in clientes %}
+                    <option value="{{ c.id_cliente }}">
+                        {{ c.nombre }} {{ c.apellido }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <label class="form-label mt-3">Duración (minutos)</label>
+            <input type="number"
+                   name="duracion"
+                   value="30"
+                   class="form-control"
+                   min="15"
+                   step="15">
+
+            <button type="submit" class="btn btn-success mt-3">
+                Crear cita
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,11 +1,15 @@
 {% extends 'base.html' %}
 {% load static %}
+
 {% block title %}Seleccionar Servicios{% endblock %}
 
 {% block content %}
 
 <div class="container mt-5">
-    <h2 class="text-center mb-4">Selecciona los servicios para tu cita</h2>
+
+    <h2 class="text-center mb-4">
+        Selecciona los servicios para la cita
+    </h2>
 
     <form method="post">
         {% csrf_token %}
@@ -13,22 +17,105 @@
         <div class="row">
             {% for checkbox in form.servicios %}
                 <div class="col-md-4 mb-3">
+
                     <label class="card p-3 servicio-card text-center">
+
                         <div>
                             {{ checkbox.tag }}
                         </div>
-                        <h5 class="mt-2">{{ checkbox.choice_label }}</h5>
+
+                        <h5 class="mt-2">
+                            {{ checkbox.choice_label }}
+                        </h5>
+
                     </label>
+
                 </div>
             {% endfor %}
         </div>
 
-        <div class="text-center mt-4">
-            <button type="submit" class="btn btn-primary px-5 py-2">
-                Continuar
-            </button>
+        <hr>
+
+        <!-- RESUMEN -->
+        <div class="card p-3 mb-4">
+
+            <h5>Resumen de duración</h5>
+
+            <p>
+                Duración sugerida:
+                <strong id="duracion-sugerida">0</strong> minutos
+            </p>
+
+            <label class="form-label">
+                Duración final (editable)
+            </label>
+
+            <input
+                type="number"
+                name="duracion_final"
+                id="duracion-final"
+                class="form-control"
+                min="15"
+                step="15"
+            >
+
         </div>
+
+        <!-- BOTÓN -->
+        <div class="text-center">
+
+            <button type="submit"
+                    class="btn btn-primary px-5 py-2">
+                Continuar al calendario
+            </button>
+
+        </div>
+
     </form>
+
 </div>
 
-{% endblock %}s
+<!-- DATA SERVICIOS -->
+{{ servicios|json_script:"servicios-data" }}
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const servicios = JSON.parse(
+        document.getElementById("servicios-data").textContent
+    );
+
+    const duraciones = {};
+
+    servicios.forEach(s => {
+        duraciones[s.id_servicio] = s.duracion || 0;
+    });
+
+    const checkboxes = document.querySelectorAll("input[type='checkbox']");
+    const duracionSugerida = document.getElementById("duracion-sugerida");
+    const duracionFinal = document.getElementById("duracion-final");
+
+    function calcularDuracion() {
+
+        let total = 0;
+
+        checkboxes.forEach(cb => {
+            if (cb.checked) {
+                total += parseInt(duraciones[cb.value] || 0);
+            }
+        });
+
+        duracionSugerida.innerText = total;
+        duracionFinal.value = total;
+    }
+
+    checkboxes.forEach(cb => {
+        cb.addEventListener("change", calcularDuracion);
+    });
+
+});
+
+</script>
+
+{% endblock %}

@@ -49,7 +49,7 @@ class Cliente(models.Model):
 class Servicio(models.Model):
     id_servicio = models.AutoField(primary_key=True, db_column='ID_Servicio')  # PK explícito
     nombre = models.CharField(max_length=100)
-    duracion = models.CharField(max_length=50, blank=True, null=True)
+    duracion = models.IntegerField(blank=True, null=True)
     descripcion = models.CharField(max_length=200, blank=True, null=True)
     costo = models.DecimalField(max_digits=10, decimal_places=2, db_column='Costo')
 
@@ -191,6 +191,8 @@ class Cita(models.Model):
     )
 
     servicios = models.ManyToManyField(Servicio, through="CitaServicio")
+
+    duracion_minutos = models.IntegerField(default=30)
 
     class Meta:
         db_table = 'Citas'

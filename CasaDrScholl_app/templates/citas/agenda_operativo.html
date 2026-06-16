@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Agenda
+{% endblock %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+    {% if error %}
+    <div class="alert alert-danger">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <h2>
+        Agenda de
+        {{ operativo.personal.nombre }}
+        {{ operativo.personal.apellido }}
+    </h2>
+
+    <form method="get" class="mb-4">
+
+            <label class="form-label">
+                Seleccione una fecha
+            </label>
+
+            <input
+                type="date"
+                name="fecha"
+                value="{{ fecha|date:'Y-m-d' }}"
+                class="form-control"
+            >
+
+            <button
+                type="submit"
+                class="btn btn-primary mt-2">
+
+                Ver Agenda
+
+            </button>
+
+        </form>
+
+    <hr>
+
+    <div class="row" id="agenda">
+
+        {% for hora in horas %}
+
+            <div class="col-md-4 mb-3">
+
+                <div class="card shadow-sm">
+
+                    <div class="card-body">
+
+                        <h5>{{ hora.hora_12 }}</h5>
+
+                        <p>
+                            Espacios libres:
+                            {{ hora.libres }}/4
+                        </p>
+
+                        <div class="d-flex flex-wrap gap-1">
+
+                            {% for b in hora.bloques %}
+
+                                {% if b.libre %}
+
+                                    <a href="/citas/seleccionar-bloque/?fecha={{ fecha }}&hora={{ b.hora }}"
+                                    class="btn btn-success btn-sm">
+                                        {{ b.hora }}
+                                    </a>
+
+                                {% else %}
+
+                                    <button class="btn btn-danger btn-sm" disabled>
+                                        {{ b.hora }}
+                                    </button>
+
+                                {% endif %}
+
+                            {% endfor %}
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+    
+
+</div>
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    window.cargarBloques = function (hora) {
+
+        const fecha = document.querySelector("input[name='fecha']").value;
+
+        document.querySelectorAll("[id^='bloques-']").forEach(el => {
+            el.innerHTML = "";
+        });
+
+        const container = document.getElementById(`bloques-${hora}`);
+
+        fetch(`/citas/bloques-hora/?hora=${hora}&fecha=${fecha}`)
+            .then(response => response.json())
+            .then(data => {
+
+                if (data.error) {
+                    container.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                    return;
+                }
+
+                let html = '<div class="row">';
+
+                data.bloques.forEach(b => {
+
+                    if (!b.puede_iniciar) {
+
+                        html += `
+                            <button class="btn btn-danger w-100" disabled>
+                                ${b.hora}
+                            </button>
+                        `;
+
+                    } else {
+
+                        html += `
+                            <a href="/citas/seleccionar-bloque/?fecha=${fecha}&hora=${hora}&bloque=${b.hora}"
+                            class="btn btn-success w-100">
+                                ${b.hora}
+                            </a>
+                        `;
+                    }
+
+                });
+
+                html += '</div>';
+
+                container.innerHTML = html;
+
+            })
+            .catch(error => {
+                console.error(error);
+            });
+    };
+
+});
+
+</script>
+
+{% endblock %}
+

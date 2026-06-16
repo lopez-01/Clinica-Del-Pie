@@ -1,13 +1,16 @@
 from django.contrib import messages
-from urllib import request
+from django.http import JsonResponse
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import MetodoPago, Servicio, Cliente, Cita, Operativo, Personal, Administrativo, Estado, Propuestas_Citas, ServicioOperativo, CitaServicio, Factura, ServicioFactura, EstadoPago, MetodoPago
 from .forms import ClienteForm, ServicioSelectForm, OperativoSelectForm, FechaHoraForm
 from django.urls import reverse
-from datetime import datetime
+from datetime import date, datetime, timedelta, time
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_GET, require_POST
+import json
+from django.db.models import Q
 
 
 def login_view(request):
@@ -114,6 +117,7 @@ def inbox(request):
         'solicitudes': solicitudes
     })
 
+
 def rechazar_propuesta(request, id):
     propuesta = get_object_or_404(Propuestas_Citas, ID_Propuesta=id)
 
@@ -137,7 +141,6 @@ def crear_cita_desde_propuesta(request, id):
     request.session['flujo_origen'] = 'inbox'
 
     return redirect('seleccionar_servicios')
-
 
 
 def listar_clientes(request):
@@ -191,23 +194,48 @@ def servicios(request):
 
 
 def seleccionar_servicios(request):
+
     if request.method == 'POST':
+
         form = ServicioSelectForm(request.POST)
+
         if form.is_valid():
-            servicios_ids = [s.id_servicio for s in form.cleaned_data['servicios']]
+
+            servicios = form.cleaned_data['servicios']
+
+            servicios_ids = [s.id_servicio for s in servicios]
+
+            duracion_sugerida = sum(s.duracion for s in servicios)
+
+            duracion_final = request.POST.get('duracion_final')
+
+            # 🔥 guardar selección en sesión
             request.session['servicios_seleccionados'] = servicios_ids
+            request.session['duracion_sugerida'] = duracion_sugerida
+            request.session['duracion_final'] = (
+                int(duracion_final) if duracion_final else duracion_sugerida
+            )
+
             request.session.modified = True
 
-            origen = request.session.get('flujo_origen')
+            # 🔥 IMPORTANTE: flujo directo a operativo + calendario
+            return redirect('seleccionar_operativo')
 
-            if origen == 'inbox':
-                return redirect('seleccionar_operativo')
-            else:
-                return redirect('crear_cita_cliente')
     else:
         form = ServicioSelectForm()
 
-    return render(request, 'citas/seleccionar_servicios.html', {'form': form})
+    servicios = list(
+        Servicio.objects.all().values(
+            'id_servicio',
+            'nombre',
+            'duracion'
+        )
+    )
+
+    return render(request, 'citas/seleccionar_servicios.html', {
+        'form': form,
+        'servicios': servicios
+    })
 
 
 def crear_cita_cliente(request):
@@ -239,10 +267,282 @@ def seleccionar_operativo(request):
         if form.is_valid():
             operativo_id = form.cleaned_data['operativo'].id_operativo
             request.session['operativo_id'] = operativo_id
-            return redirect('seleccionar_fecha_hora')
+            request.session['flujo_origen'] = 'calendar'
+            return redirect('calendar')
     else:
         form = OperativoSelectForm()
     return render(request, 'citas/seleccionar_operativo.html', {'form': form})
+
+
+
+def agenda_operativo(request):
+
+    operativo_id = request.session.get('operativo_id')
+
+    if not operativo_id:
+        return redirect('seleccionar_operativo')
+
+    operativo = get_object_or_404(Operativo, id_operativo=operativo_id)
+
+    fecha_str = request.GET.get('fecha')
+
+    if fecha_str:
+        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+    else:
+        fecha = date.today()
+
+    # ❌ no atención lunes
+    if fecha.weekday() == 0:
+        return render(request, 'citas/agenda_operativo.html', {
+            'operativo': operativo,
+            'fecha': fecha,
+            'horas': [],
+            'error': 'La clínica no atiende los lunes.'
+        })
+
+    horas = []
+    now = timezone.localtime(timezone.now())
+
+    for hora in range(8, 18):
+
+        bloques = []
+
+        for minuto in range(0, 60):
+
+            inicio = datetime.combine(fecha, time(hora, minuto))
+            inicio = timezone.make_aware(inicio)
+
+            # 🔥 solo bloquear pasado (visual)
+            es_pasado = (fecha == now.date() and inicio < now)
+
+            libre = not hay_conflicto_intervalo(
+                operativo,
+                fecha,
+                inicio,
+                30
+            )
+
+            bloques.append({
+                "hora": f"{hora:02d}:{minuto:02d}",
+                "inicio": inicio,
+                "pasado": es_pasado,
+                "libre": libre and not es_pasado,
+            })
+
+        horas.append({
+            "hora_24": f"{hora:02d}:00",
+            "hora_12": datetime.strptime(
+                f"{hora:02d}:00",
+                "%H:%M"
+            ).strftime("%I:%M %p"),
+            "bloques": bloques
+        })
+
+    return render(request, 'citas/agenda_operativo.html', {
+        'operativo': operativo,
+        'fecha': fecha,
+        'horas': horas
+    })
+
+
+@require_GET
+def bloques_hora_ajax(request):
+
+    operativo_id = request.session.get('operativo_id')
+    hora = int(request.GET.get('hora'))
+    fecha_str = request.GET.get('fecha')
+
+    operativo = Operativo.objects.get(id_operativo=operativo_id)
+    fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+
+    bloques = []
+
+    now = timezone.localtime(timezone.now())
+
+    for minuto in range(0, 60):
+
+        inicio = datetime.combine(fecha, time(hora, minuto))
+        inicio = timezone.make_aware(inicio)
+
+        es_pasado = (fecha == now.date() and inicio < now)
+
+        libre = not hay_conflicto_intervalo(
+            operativo,
+            fecha,
+            inicio,
+            30
+        )
+
+        bloques.append({
+            "hora": f"{hora:02d}:{minuto:02d}",
+            "libre": libre and not es_pasado,
+            "pasado": es_pasado,
+        })
+
+    return JsonResponse({"bloques": bloques})
+
+
+def hay_conflicto_intervalo(operativo, fecha, inicio, duracion, excluir=None):
+
+    citas = Cita.objects.filter(
+        operativo=operativo,
+        fechahora__date=fecha,
+        estado__nombre_estado='Programada'
+    )
+
+    if excluir:
+        citas = citas.exclude(
+            id_cita=excluir
+        )
+
+    fin_nuevo = inicio + timedelta(minutes=duracion)
+
+    for c in citas:
+        inicio_cita = timezone.localtime(c.fechahora)
+        fin_cita = inicio_cita + timedelta(minutes=c.duracion_minutos or 30)
+
+        if inicio < fin_cita and fin_nuevo > inicio_cita:
+            return True
+
+    return False
+
+
+def obtener_rangos_ocupados(operativo, fecha):
+
+    citas = Cita.objects.filter(
+        operativo=operativo,
+        fechahora__date=fecha,
+        estado__nombre_estado='Programada'
+    )
+
+    rangos = []
+
+    for c in citas:
+        inicio = timezone.localtime(c.fechahora)
+        fin = inicio + timedelta(minutes=c.duracion_minutos or 30)
+
+        rangos.append({
+            "inicio": inicio,
+            "fin": fin
+        })
+
+    return rangos
+
+
+def calendar_view(request):
+
+    operativo_id = request.session.get('operativo_id')
+    if not operativo_id:
+        return redirect('seleccionar_operativo')
+
+    operativo = get_object_or_404(Operativo, id_operativo=operativo_id)
+
+    fecha_str = request.GET.get('fecha')
+    base_date = datetime.strptime(fecha_str, "%Y-%m-%d").date() if fecha_str else date.today()
+
+    offset = int(request.GET.get("offset", 0))
+
+    # 🔥 aplicar desplazamiento de semanas
+    base_date = base_date + timedelta(weeks=offset)
+
+    # 🔥 construir semana (lunes a domingo)
+    inicio_semana = base_date - timedelta(days=base_date.weekday())
+
+    dias = []
+    for i in range(7):
+        dia = inicio_semana + timedelta(days=i)
+        dias.append(dia)
+
+    # 🔥 horas visibles
+    horas = list(range(8, 18))
+
+    # 🔥 citas del operativo en la semana
+    fin_semana = inicio_semana + timedelta(days=7)
+
+    citas = Cita.objects.filter(
+        operativo=operativo,
+        fechahora__date__gte=inicio_semana,
+        fechahora__date__lt=fin_semana
+    )
+
+    servicios = Servicio.objects.all()
+
+    eventos = []
+
+    for c in citas:
+        inicio = timezone.localtime(c.fechahora)
+        fin = inicio + timedelta(minutes=c.duracion_minutos or 30)
+
+        inicio_minutos = (inicio.hour - 8) * 60 + inicio.minute
+
+        eventos.append({
+            "id": c.id_cita,
+            "inicio": inicio,
+            "fin": fin,
+            "cliente": f"{c.cliente.nombre} {c.cliente.apellido}",
+            "dia": inicio.date(),
+
+            "duracion": c.duracion_minutos,
+
+            "top": inicio_minutos * 2,  # 1px por minuto
+            "height": (c.duracion_minutos or 30) * 2,
+
+            "hora_texto": inicio.strftime("%H:%M"),
+            "hora_fin": fin.strftime("%H:%M"),
+        })
+
+    return render(request, "citas/calendar.html", {
+        "operativo": operativo,
+        "dias": dias,
+        "horas": horas,
+        "eventos": eventos,
+        "offset": offset,
+        "Clientes": Cliente.objects.all(),
+        "duracion": c.duracion_minutos or 30,
+        "hora_texto": inicio.strftime("%H:%M"),
+        "hora_fin": fin.strftime("%H:%M"),
+        "servicios": servicios,
+    })
+
+
+
+@require_POST
+def mover_cita(request):
+
+    data = json.loads(request.body)
+
+    cita = Cita.objects.get(id=data["id"])
+
+    nueva_fecha = timezone.localtime(cita.fechahora).date()
+
+    nueva_hora_min = data["top"]
+
+    nueva_duracion = data["height"]
+
+    nueva_inicio = datetime.combine(
+        nueva_fecha,
+        time(0, 0)
+    ) + timedelta(minutes=nueva_hora_min)
+
+    nueva_inicio = timezone.make_aware(nueva_inicio)
+
+    # VALIDACIÓN
+    if hay_conflicto_intervalo(
+        cita.operativo,
+        nueva_fecha,
+        nueva_inicio,
+        nueva_duracion
+    ):
+        return JsonResponse({
+            "error": True,
+            "mensaje": "Conflicto con otra cita."
+        })
+
+    cita.fechahora = nueva_inicio
+    cita.duracion_minutos = nueva_duracion
+    cita.save()
+
+    return JsonResponse({"ok": True})
 
 
 def seleccionar_fecha_hora(request):
@@ -257,6 +557,406 @@ def seleccionar_fecha_hora(request):
     else:
         form = FechaHoraForm()
     return render(request, 'citas/seleccionar_fecha_hora.html', {'form': form})
+
+
+def seleccionar_bloque(request):
+
+    operativo_id = request.session.get('operativo_id')
+
+    if not operativo_id:
+        return redirect('seleccionar_operativo')
+
+    fecha = request.GET.get('fecha')
+    hora = request.GET.get('hora')
+    bloque = request.GET.get('bloque')
+
+    if not all([fecha, hora, bloque]):
+        return redirect('agenda_operativo')
+
+    # guardar en sesión (ESTO ES LO IMPORTANTE)
+    request.session['fecha'] = fecha
+    request.session['hora'] = bloque
+    request.session['operativo_id'] = operativo_id
+
+    return redirect('confirmar_cita')
+
+
+
+@require_POST
+def crear_cita_ajax(request):
+
+    data = json.loads(request.body)
+
+    fecha = data["fecha"]
+    hora = data["hora"]
+    duracion = int(data["duracion"])
+
+    nombre = data["nombre"].strip()
+    apellido = data["apellido"].strip()
+    telefono = data["telefono"].strip()
+    email = data["email"].strip()
+    sexo = data["sexo"]
+
+    operativo_id = request.session.get("operativo_id")
+
+    operativo = get_object_or_404(
+        Operativo,
+        id_operativo=operativo_id
+    )
+
+    inicio = datetime.strptime(
+        f"{fecha} {hora}",
+        "%Y-%m-%d %H:%M"
+    )
+
+    inicio = timezone.make_aware(inicio)
+
+    ahora = timezone.localtime()
+
+    # ❗ VALIDACIÓN PRIMERO
+    if not telefono and not email:
+        return JsonResponse({
+            "error": True,
+            "mensaje": "Debe ingresar al menos teléfono o correo para identificar al cliente."
+        })
+
+    if inicio < ahora:
+        return JsonResponse({
+            "error": True,
+            "mensaje": "No se pueden crear citas en fechas pasadas."
+        })
+
+    cliente = None
+
+    # BUSCAR CLIENTE EXISTENTE
+    if telefono:
+        cliente = Cliente.objects.filter(n_telefono=telefono).first()
+
+    if not cliente and email:
+        cliente = Cliente.objects.filter(email=email).first()
+
+    # CREAR SI NO EXISTE
+    if not cliente:
+        cliente = Cliente.objects.create(
+            nombre=nombre,
+            apellido=apellido,
+            sexo=sexo,
+            n_telefono=telefono,
+            email=email
+        )
+
+    # VALIDAR SOLAPAMIENTO
+    if hay_conflicto_intervalo(
+        operativo,
+        inicio.date(),
+        inicio,
+        duracion
+    ):
+        return JsonResponse({
+            "error": True,
+            "mensaje": "La duración de la cita se solapa con otra."
+        })
+
+    cita = Cita.objects.create(
+        fechahora=inicio,
+        cliente=cliente,
+        operativo=operativo,
+        duracion_minutos=duracion,
+        estado=Estado.objects.get(nombre_estado="Programada")
+    )
+
+    servicios_ids = data.get("servicios", [])
+
+    for servicio_id in servicios_ids:
+
+        CitaServicio.objects.create(
+            cita=cita,
+            servicio_id=servicio_id
+        )
+
+    return JsonResponse({
+        "ok": True,
+        "id_cita": cita.id_cita,
+        "cliente_id": cliente.id_cliente
+    })
+
+
+def detalle_cita_ajax(request, id):
+
+    cita = get_object_or_404(
+        Cita,
+        id_cita=id
+    )
+
+    return JsonResponse({
+
+        "id": cita.id_cita,
+
+        "cliente":
+            f"{cita.cliente.nombre} "
+            f"{cita.cliente.apellido}",
+
+        "fecha":
+            timezone.localtime(
+                cita.fechahora
+            ).strftime("%Y-%m-%d"),
+
+        "hora":
+            timezone.localtime(
+                cita.fechahora
+            ).strftime("%H:%M"),
+
+        "duracion":
+            cita.duracion_minutos,
+
+    })
+
+
+@require_POST
+def editar_cita_ajax(request):
+
+    data = json.loads(request.body)
+
+    cita = get_object_or_404(
+        Cita,
+        id_cita=data["id"]
+    )
+
+    fecha = data["fecha"]
+    hora = data["hora"]
+    duracion = int(data["duracion"])
+
+    inicio = datetime.strptime(
+        f"{fecha} {hora}",
+        "%Y-%m-%d %H:%M"
+    )
+
+    inicio = timezone.make_aware(inicio)
+
+    # NO PERMITIR FECHAS PASADAS
+
+    if inicio < timezone.localtime():
+
+        return JsonResponse({
+            "error": True,
+            "mensaje": "No se puede mover una cita a una fecha pasada."
+        })
+
+    if duracion <= 0:
+
+        return JsonResponse({
+            "error": True,
+            "mensaje": "La duración debe ser mayor que 0."
+        })
+
+    # VALIDAR SOLAPAMIENTO
+
+    if hay_conflicto_intervalo(
+        cita.operativo,
+        inicio.date(),
+        inicio,
+        duracion,
+        excluir=cita.id_cita
+    ):
+
+        return JsonResponse({
+            "error": True,
+            "mensaje": "La cita se solapa con otra cita existente."
+        })
+
+    cita.fechahora = inicio
+    cita.duracion_minutos = duracion
+
+    cita.save()
+
+    return JsonResponse({
+        "ok": True
+    })
+
+
+def obtener_cita_ajax(request, id_cita):
+
+    cita = get_object_or_404(
+        Cita,
+        id_cita=id_cita
+    )
+
+    servicios = []
+
+    for s in cita.servicios.all():
+
+        servicios.append({
+            "id": s.id_servicio,
+            "nombre": s.nombre,
+            "duracion": s.duracion
+        })
+        
+
+    todos_servicios = []
+
+    for s in Servicio.objects.all():
+
+        todos_servicios.append({
+            "id": s.id_servicio,
+            "nombre": s.nombre,
+            "duracion": s.duracion
+        })
+         
+
+    return JsonResponse({
+
+        "id": cita.id_cita,
+
+        "fecha":
+            timezone.localtime(
+                cita.fechahora
+            ).strftime("%Y-%m-%d"),
+
+        "hora":
+            timezone.localtime(
+                cita.fechahora
+            ).strftime("%H:%M"),
+
+        "duracion":
+            cita.duracion_minutos,
+
+        "cliente":
+            f"{cita.cliente.nombre} {cita.cliente.apellido}",
+
+        "telefono":
+            cita.cliente.n_telefono,
+
+        "email":
+            cita.cliente.email,
+
+        "servicios": servicios,
+
+        "todos_servicios": todos_servicios,
+        
+    })
+
+
+@require_POST
+def mover_cita_ajax(request):
+
+    data = json.loads(request.body)
+
+    cita = get_object_or_404(
+        Cita,
+        id_cita=data["id"]
+    )
+
+    top = int(data["top"])
+    height = int(data["height"])
+
+    minutos_inicio = top
+    duracion = height
+
+    hora = 8 + (minutos_inicio // 60)
+    minuto = minutos_inicio % 60
+
+    inicio_nuevo = timezone.localtime(
+        cita.fechahora
+    ).replace(
+        hour=hora,
+        minute=minuto
+    )
+
+    conflicto = hay_conflicto_intervalo(
+        cita.operativo,
+        inicio_nuevo.date(),
+        inicio_nuevo,
+        duracion,
+        excluir=cita.id_cita
+    )
+
+    if conflicto:
+
+        sugerencias = buscar_horarios_libres(
+            cita.operativo,
+            inicio_nuevo.date(),
+            duracion
+        )
+
+        return JsonResponse({
+            "error": True,
+            "mensaje": "La cita se solapa con otra.",
+            "sugerencias": sugerencias
+        })
+
+    cita.fechahora = inicio_nuevo
+    cita.duracion_minutos = duracion
+    cita.save()
+
+    return JsonResponse({"ok": True})
+
+
+
+def buscar_horarios_libres(
+    operativo,
+    fecha,
+    duracion
+):
+
+    opciones = []
+
+    for hora in range(8, 18):
+
+        for minuto in range(60):
+
+            inicio = datetime.combine(
+                fecha,
+                time(hora, minuto)
+            )
+
+            inicio = timezone.make_aware(
+                inicio
+            )
+
+            conflicto = hay_conflicto_intervalo(
+                operativo,
+                fecha,
+                inicio,
+                duracion
+            )
+
+            if not conflicto:
+
+                opciones.append({
+                    "inicio": inicio.strftime("%H:%M"),
+                    "duracion": duracion
+                })
+
+            if len(opciones) >= 5:
+                return opciones
+
+    return opciones
+
+
+def buscar_clientes(request):
+
+    q = request.GET.get("q", "")
+
+    clientes = Cliente.objects.filter(
+        Q(nombre__icontains=q) |
+        Q(apellido__icontains=q)
+    )[:10]
+
+    data = []
+
+    for c in clientes:
+
+        data.append({
+            "id": c.id_cliente,
+            "nombre": c.nombre,
+            "apellido": c.apellido,
+            "telefono": c.n_telefono,
+            "email": c.email,
+        })
+
+    return JsonResponse({
+        "clientes": data
+    })
 
 
 def iniciar_cita(request):
@@ -312,13 +1012,20 @@ def confirmar_cita(request):
     else:
         cliente = get_object_or_404(Cliente, id_cliente=cliente_id)
 
+
     if request.method == 'POST':
 
+        duracion_sugerida = sum(s.duracion for s in servicios)
+        duracion_final = duracion_sugerida  # luego será editable
+
+
         # 🔒 VALIDAR SI EL HORARIO YA ESTÁ OCUPADO
-        conflicto = Cita.objects.filter(
+        conflicto = hay_conflicto_intervalo(
             operativo=operativo,
-            fechahora=fechahora
-        ).exists()
+            fecha=fechahora.date(),
+            inicio=fechahora,
+            duracion=duracion_final
+        )
 
         if conflicto:
             return render(request, 'citas/confirmar_cita.html', {
@@ -333,7 +1040,8 @@ def confirmar_cita(request):
         cita = Cita.objects.create(
             fechahora=fechahora,
             cliente=cliente,
-            operativo=operativo
+            operativo=operativo,
+            duracion_minutos=duracion_final
         )
 
         cita.servicios.set(servicios)
@@ -378,6 +1086,7 @@ def confirmar_cita(request):
         'servicios': servicios,
         'fechahora': fechahora,
     })
+
 
 @login_required    
 def resumen_citas(request):
@@ -707,25 +1416,6 @@ def listar_facturas(request):
     )
 
 
-@login_required
-def pagar_factura(request, id_factura):
-
-    factura = get_object_or_404(
-        Factura,
-        id_factura=id_factura
-    )
-
-    estado_pagada = EstadoPago.objects.get(
-        nombre='Pagada'
-    )
-
-    factura.estado_pago = estado_pagada
-    factura.save()
-
-    return redirect(
-        'ver_factura',
-        id_factura=factura.id_factura
-    )
 
 @login_required
 def anular_factura(request, id_factura):
@@ -754,7 +1444,7 @@ def pagar_factura(request, id_factura):
     factura = get_object_or_404(Factura, id_factura=id_factura)
 
     # evitar pagar dos veces
-    if factura.estado_pago == 2:  # 'Pagada'
+    if factura.estado_pago.nombre == "Pagada":  
         return redirect('ver_factura', id_factura=id_factura)
 
     metodos = MetodoPago.objects.all()

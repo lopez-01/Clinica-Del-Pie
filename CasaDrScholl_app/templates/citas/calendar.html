@@ -1,0 +1,1143 @@
+{% extends 'base.html' %}
+
+{% block title %}Calendario{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between mb-3">
+
+    <a class="btn btn-outline-primary"
+       href="?offset={{ offset|add:'-1' }}">
+        ← Semana anterior
+    </a>
+
+    <a class="btn btn-outline-secondary"
+       href="?offset=0">
+        Hoy
+    </a>
+
+    <a class="btn btn-outline-primary"
+       href="?offset={{ offset|add:'1' }}">
+        Semana siguiente →
+    </a>
+
+</div>
+
+<div class="container calendar-wrapper">
+
+    <div class="row text-center fw-bold">
+        <div class="col-1"></div>
+
+        {% for dia in dias %}
+            <div class="col border">
+                {{ dia|date:"l d M" }}
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="row">
+
+        <!-- HORAS -->
+        <div class="col-1">
+            {% for hora in horas %}
+                <div class="hour-slot">
+                    <span class="hora-principal">
+                        {{ hora }}:00
+                    </span>
+
+                    <span class="hora-media">
+                        {{ hora }}:30
+                    </span>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- DÍAS -->
+        {% for dia in dias %}
+        <div class="col day-column border"
+             data-dia="{{ dia|date:'Y-m-d' }}">
+
+            <div class="click-layer"
+                 onclick="crearDesdeClick(event, this)"
+                 data-dia="{{ dia|date:'Y-m-d' }}"></div>
+
+            {% for e in eventos %}
+                {% if e.dia == dia %}
+                <div class="event"
+
+                    data-id="{{ e.id }}"
+                    data-top="{{ e.top }}"
+                    data-height="{{ e.height }}"
+
+                    onclick="abrirEditarCita('{{ e.id }}')">
+                    
+                    <div class="event-header">
+                        <strong>{{ e.cliente }}</strong>
+                    </div>
+
+                    <div class="event-time">
+                        {{ e.hora_texto }} - {{ e.hora_fin }}
+                    </div>
+
+
+                    <div class="resize-handle"></div>
+
+                </div>
+                {% endif %}
+            {% endfor %}
+
+        </div>
+        {% endfor %}
+
+    </div>
+
+
+
+</div>
+
+<!-- MODAL -->
+<div id="citaModal"
+     style="display:none;
+            position:fixed;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background:rgba(0,0,0,.5);
+            z-index:9999;">
+
+    <div style="
+        background:white;
+        width:650px;
+        max-width:95%;
+        max-height:90vh;
+        overflow-y:auto;
+        margin:20px auto;
+        padding:25px;
+        border-radius:12px;">
+
+        <h3 class="mb-3">
+            Nueva cita
+        </h3>
+
+        <div class="row">
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">
+                    Fecha
+                </label>
+
+                <input
+                    type="date"
+                    id="fecha-cita"
+                    class="form-control">
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">
+                    Hora
+                </label>
+
+                <input
+                    type="time"
+                    id="hora-cita"
+                    class="form-control">
+            </div>
+
+            <div class="col-12">
+                <h5>Servicios</h5>
+            </div>
+
+            <div class="col-12">
+
+                <div class="row">
+
+                    {% for s in servicios %}
+
+                    <div class="col-md-6 mb-2">
+
+                        <label class="form-check">
+
+                            <input
+                                class="form-check-input servicio-check"
+                                type="checkbox"
+                                value="{{ s.id_servicio }}"
+                                data-duracion="{{ s.duracion }}">
+
+                            {{ s.nombre }}
+
+                            <small class="text-muted">
+                                ({{ s.duracion }} min)
+                            </small>
+
+                        </label>
+
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+                
+            </div>
+
+            
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">
+                    Duración sugerida
+                </label>
+
+                <input
+                    type="number"
+                    id="duracion-sugerida"
+                    class="form-control"
+                    value="0"
+                    readonly>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">
+                    Duración final
+                </label>
+
+                <input
+                    type="number"
+                    id="duracion"
+                    class="form-control"
+                    value="0">
+            </div>
+
+        </div>
+
+        <hr>
+
+        <h5 class="mb-3">
+            Datos del cliente
+        </h5>
+
+        <div class="btn-group w-100 mb-3">
+
+            <button
+                type="button"
+                class="btn btn-primary"
+                id="btn-nuevo-cliente"
+                onclick="mostrarNuevoCliente()">
+
+                Nuevo cliente
+
+            </button>
+
+            <button
+                type="button"
+                class="btn btn-outline-primary"
+                id="btn-cliente-existente"
+                onclick="mostrarClienteExistente()">
+
+                Cliente existente
+
+            </button>
+
+        </div>
+
+
+        <div id="nuevo-cliente-container">
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        Nombre
+                    </label>
+
+                    <input
+                        type="text"
+                        id="cliente-nombre"
+                        class="form-control">
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        Apellido
+                    </label>
+
+                    <input
+                        type="text"
+                        id="cliente-apellido"
+                        class="form-control">
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        Teléfono
+                    </label>
+
+                    <input
+                        type="text"
+                        id="cliente-telefono"
+                        class="form-control">
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        Correo
+                    </label>
+
+                    <input
+                        type="email"
+                        id="cliente-email"
+                        class="form-control">
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">
+                        Sexo
+                    </label>
+
+                    <select
+                        id="cliente-sexo"
+                        class="form-control">
+
+                        <option value="M">
+                            Masculino
+                        </option>
+
+                        <option value="F">
+                            Femenino
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div
+            id="cliente-existente-container"
+            style="display:none;">
+
+            <div class="mb-3">
+
+                <label class="form-label">
+                    Buscar cliente
+                </label>
+
+                <input
+                    type="text"
+                    id="buscar-cliente"
+                    class="form-control"
+                    placeholder="Nombre y apellido">
+
+            </div>
+
+            <div
+                id="cliente-seleccionado"
+                class="mb-3">
+
+            </div>
+
+            <div
+                id="resultados-clientes"
+                class="mt-3">
+
+            </div>
+
+
+        </div>
+
+
+        <div class="d-flex gap-2">
+
+            <button
+                class="btn btn-success flex-fill"
+                onclick="guardarCita()">
+
+                Guardar cita
+
+            </button>
+
+            <button
+                class="btn btn-secondary flex-fill"
+                onclick="cerrarModal()">
+
+                Cancelar
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- MODAL EDITAR -->
+<div id="editarCitaModal"
+     style="display:none;
+            position:fixed;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background:rgba(0,0,0,.5);
+            z-index:9999;">
+
+    <div style="
+        background:white;
+        width:500px;
+        max-width:95%;
+        margin:40px auto;
+        padding:25px;
+        border-radius:12px;">
+
+        <h3>Editar cita</h3>
+
+        <div id="editar-info-cliente"
+            class="alert alert-info mb-3">
+        </div>
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Servicios
+            </label>
+
+            <div id="editar-servicios">
+
+            </div>
+
+        </div>
+
+        <input
+            type="hidden"
+            id="editar-id">
+
+        <div class="mb-3">
+            <label>Fecha</label>
+
+            <input
+                type="date"
+                id="editar-fecha"
+                class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label>Hora</label>
+
+            <input
+                type="time"
+                id="editar-hora"
+                class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label>Duración</label>
+
+            <input
+                type="number"
+                id="editar-duracion"
+                class="form-control">
+        </div>
+
+        <div class="d-flex gap-2">
+
+            <button
+                class="btn btn-success flex-fill"
+                onclick="guardarEdicionCita()">
+
+                Guardar cambios
+
+            </button>
+
+            <button
+                class="btn btn-secondary flex-fill"
+                onclick="cerrarEditarCita()">
+
+                Cancelar
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<style>
+
+.hour-slot{
+    height:120px;
+    position:relative;
+}
+
+.hora-principal{
+    position:absolute;
+    top:0;
+}
+
+.hora-media{
+    position:absolute;
+    top:60px;
+    font-size:11px;
+    color:#999;
+}
+
+.day-column {
+    position: relative;
+    height: 1200px;
+    background: white;
+    overflow: hidden;
+
+    background-image:
+
+        /* línea hora completa */
+        repeating-linear-gradient(
+            to bottom,
+            transparent 0,
+            transparent 119px,
+            #d0d0d0 119px,
+            #d0d0d0 120px
+        ),
+
+        /* línea media hora */
+        repeating-linear-gradient(
+            to bottom,
+            transparent 0,
+            transparent 59px,
+            #eeeeee 59px,
+            #eeeeee 60px
+        );
+}
+
+.click-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+.event {
+    position: absolute;
+    left: 5px;
+    right: 5px;
+    background: #dc3545;
+    color: white;
+    border-radius: 6px;
+    font-size: 12px;
+    z-index: 2;
+    cursor: grab;
+    padding: 4px;
+    overflow: hidden;
+}
+
+.event-header {
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.resize-handle {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    cursor: ns-resize;
+    background: rgba(0,0,0,0.2);
+}
+
+.servicios-box{
+    max-height:150px;
+    overflow-y:auto;
+    border:1px solid #ddd;
+    border-radius:8px;
+    padding:10px;
+    margin-bottom:15px;
+}
+
+</style>
+
+
+<script>
+
+let clienteExistente = null;
+
+function mostrarNuevoCliente() {
+
+    document.getElementById(
+        "nuevo-cliente-container"
+    ).style.display = "block";
+
+    document.getElementById(
+        "cliente-existente-container"
+    ).style.display = "none";
+
+    document.getElementById(
+        "btn-nuevo-cliente"
+    ).className =
+        "btn btn-primary";
+
+    document.getElementById(
+        "btn-cliente-existente"
+    ).className =
+        "btn btn-outline-primary";
+
+}
+
+function mostrarClienteExistente() {
+
+    document.getElementById(
+        "nuevo-cliente-container"
+    ).style.display = "none";
+
+    document.getElementById(
+        "cliente-existente-container"
+    ).style.display = "block";
+
+    document.getElementById(
+        "btn-nuevo-cliente"
+    ).className =
+        "btn btn-outline-primary";
+
+    document.getElementById(
+        "btn-cliente-existente"
+    ).className =
+        "btn btn-primary";
+        
+
+}
+
+</script>
+
+
+<!-- JS PRINCIPAL -->
+<script>
+
+
+const PIXELS_PER_HOUR =
+    document.querySelector(".hour-slot")
+            .offsetHeight;
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    // POSICIONAR EVENTOS
+    document.querySelectorAll(".event").forEach(el => {
+        el.style.top = el.dataset.top + "px";
+        el.style.height = el.dataset.height + "px";
+    });
+
+
+    // SERVICIOS
+    document
+    .querySelectorAll(".servicio-check")
+    .forEach(check => {
+
+        check.addEventListener(
+            "change",
+            actualizarDuracion
+        );
+
+    });
+
+    // BUSCADOR DE CLIENTES
+    document
+    .getElementById("buscar-cliente")
+    .addEventListener("input", buscarClientes);
+
+    document.getElementById("btn-nuevo-cliente").addEventListener("click", function () {
+        limpiarClienteSeleccionado();
+    });
+
+});
+
+function buscarClientes() {
+
+    const texto =
+        document.getElementById(
+            "buscar-cliente"
+        ).value;
+
+    if (texto.length < 2) {
+
+        document.getElementById(
+            "resultados-clientes"
+        ).innerHTML = "";
+
+        return;
+    }
+
+    fetch(
+        `/clientes/buscar/?q=${encodeURIComponent(texto)}`
+    )
+    .then(r => r.json())
+    .then(data => {
+
+        let html = "";
+
+        data.clientes.forEach(cliente => {
+
+            html += `
+                <div
+                    class="card mb-2 cliente-item"
+                    data-id="${cliente.id}"
+                    data-nombre="${cliente.nombre}"
+                    data-apellido="${cliente.apellido}"
+                    data-telefono="${cliente.telefono || ''}"
+                    data-email="${cliente.email || ''}"
+                    onclick="seleccionarClienteDesdeElemento(this)">
+
+                    <div class="card-body">
+
+                        <strong>
+                            ${cliente.nombre}
+                            ${cliente.apellido}
+                        </strong>
+
+                        <br>
+
+                        ${cliente.telefono || ''}
+
+                        <br>
+
+                        ${cliente.email || ''}
+
+                    </div>
+
+                </div>
+            `;
+
+        });
+
+        document.getElementById(
+            "resultados-clientes"
+        ).innerHTML = html;
+
+    });
+
+}
+
+
+function seleccionarCliente(cliente) {
+
+    clienteExistente = cliente.id_cliente;
+
+    document.getElementById("cliente-nombre").value =
+        cliente.nombre;
+
+    document.getElementById("cliente-apellido").value =
+        cliente.apellido;
+
+    document.getElementById("cliente-telefono").value =
+        cliente.n_telefono || "";
+
+    document.getElementById("cliente-email").value =
+        cliente.email || "";
+
+    document.getElementById("cliente-sexo").value =
+        cliente.sexo || "M";
+
+    document.getElementById("cliente-seleccionado").innerHTML = `
+        <div class="alert alert-success mt-2">
+            ✓ Cliente seleccionado:
+            <strong>${cliente.nombre} ${cliente.apellido}</strong>
+        </div>
+    `;
+
+    document.getElementById("resultados-clientes").innerHTML = "";
+}
+
+function seleccionarClienteDesdeElemento(el) {
+
+    const cliente = {
+        id_cliente: el.dataset.id,
+        nombre: el.dataset.nombre,
+        apellido: el.dataset.apellido,
+        telefono: el.dataset.telefono,
+        email: el.dataset.email
+    };
+
+    seleccionarCliente(cliente);
+}
+
+
+
+function cerrarModal() {
+
+    document.getElementById(
+        "citaModal"
+    ).style.display = "none";
+
+    document.getElementById("cliente-nombre").value = "";
+    document.getElementById("cliente-apellido").value = "";
+    document.getElementById("cliente-telefono").value = "";
+    document.getElementById("cliente-email").value = "";
+    document.getElementById("duracion-sugerida").value = 0;
+    document.getElementById("duracion").value = 0;
+    document.getElementById("fecha-cita").value = "";
+    document.getElementById("hora-cita").value = "";
+    document.querySelectorAll(".servicio-check").forEach(check => {
+        check.checked = false;
+    });
+
+}
+
+function limpiarClienteSeleccionado() {
+
+    clienteExistente = null;
+
+    // limpia formulario cliente
+    document.getElementById("cliente-nombre").value = "";
+    document.getElementById("cliente-apellido").value = "";
+    document.getElementById("cliente-telefono").value = "";
+    document.getElementById("cliente-email").value = "";
+    document.getElementById("cliente-sexo").value = "M";
+
+    // limpia selección visual
+    const seleccionado = document.getElementById("cliente-seleccionado");
+    if (seleccionado) seleccionado.innerHTML = "";
+
+    // 🔥 limpia buscador (esto te faltaba)
+    const buscador = document.getElementById("buscar-cliente");
+    if (buscador) buscador.value = "";
+
+    // 🔥 limpia resultados de búsqueda
+    const resultados = document.getElementById("resultados-clientes");
+    if (resultados) resultados.innerHTML = "";
+}
+
+
+function actualizarDuracion() {
+
+    let total = 0;
+
+    document
+    .querySelectorAll(".servicio-check:checked")
+    .forEach(check => {
+
+        total += parseInt(
+            check.dataset.duracion
+        );
+
+    });
+
+    document.getElementById(
+        "duracion-sugerida"
+    ).value = total;
+
+}
+
+// ================= CLICK CREATE =================
+function crearDesdeClick(event, el) {
+
+    const rect = el.getBoundingClientRect();
+    const y = event.clientY - rect.top;
+
+    const hour = 8 + Math.floor(y / PIXELS_PER_HOUR);
+
+    const pixelsDentroHora =
+        y % PIXELS_PER_HOUR;
+
+    const minute =
+        Math.floor(
+            (pixelsDentroHora / PIXELS_PER_HOUR) * 60
+        );
+
+    const dia = el.dataset.dia;
+
+    const ahora = new Date();
+
+    const fechaSeleccionadaJS = new Date(
+        `${dia}T${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00`
+    );
+
+    if (fechaSeleccionadaJS < ahora) {
+
+        alert(
+            "No se pueden crear citas en horarios que ya han pasado."
+        );
+
+        return;
+    }
+
+    fechaSeleccionada = dia;
+
+    horaSeleccionada =
+        `${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`;
+
+    document.getElementById("fecha-cita").value = dia;
+    document.getElementById("hora-cita").value = horaSeleccionada;
+
+    document.getElementById("citaModal").style.display = "block";
+}
+
+
+function abrirEditarCita(id) {
+
+    fetch(`/citas/${id}/json/`)
+    .then(response => response.json())
+    .then(data => {
+
+        document.getElementById(
+            "editar-id"
+        ).value = data.id;
+
+        document.getElementById(
+            "editar-fecha"
+        ).value = data.fecha;
+
+        document.getElementById(
+            "editar-hora"
+        ).value = data.hora;
+
+        document.getElementById(
+            "editar-duracion"
+        ).value = data.duracion;
+
+        let htmlServicios = "";
+
+        data.todos_servicios.forEach(servicio => {
+
+            const seleccionado =
+                data.servicios.some(
+                    s => s.id == servicio.id
+                );
+
+            htmlServicios += `
+                <div class="form-check">
+
+                    <input
+                        type="checkbox"
+                        class="form-check-input editar-servicio"
+                        value="${servicio.id}"
+                        data-duracion="${servicio.duracion}"
+                        ${seleccionado ? "checked" : ""}>
+
+                    <label class="form-check-label">
+
+                        ${servicio.nombre}
+                        (${servicio.duracion} min)
+
+                    </label>
+
+                </div>
+            `;
+        });
+
+        document.getElementById(
+            "editar-servicios"
+        ).innerHTML = htmlServicios;
+
+
+        document.getElementById(
+            "editarCitaModal"
+        ).style.display = "block";
+
+        document.getElementById(
+            "editar-info-cliente"
+        ).innerHTML = `
+            <strong>${data.cliente}</strong><br>
+            ${data.telefono || ''}<br>
+            ${data.email || ''}
+        `;
+
+
+    })
+    .catch(error => {
+
+        console.error("ERROR COMPLETO:", error);
+
+        alert(error);
+
+    });
+
+}
+
+function cerrarEditarCita() {
+
+    document.getElementById(
+        "editarCitaModal"
+    ).style.display = "none";
+
+}
+
+function guardarEdicionCita() {
+
+    const id =
+        document.getElementById(
+            "editar-id"
+        ).value;
+
+    const fecha =
+        document.getElementById(
+            "editar-fecha"
+        ).value;
+
+    const hora =
+        document.getElementById(
+            "editar-hora"
+        ).value;
+
+    const duracion =
+        document.getElementById(
+            "editar-duracion"
+        ).value;
+
+    fetch("/citas/editar-ajax/", {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+
+        body: JSON.stringify({
+
+            id: id,
+            fecha: fecha,
+            hora: hora,
+            duracion: duracion
+
+        })
+
+    })
+
+    .then(response => response.json())
+
+    .then(data => {
+
+        if (data.error) {
+
+            alert(data.mensaje);
+            return;
+
+        }
+
+        cerrarEditarCita();
+
+        location.reload();
+
+    })
+
+    .catch(error => {
+
+        console.error(error);
+
+        alert("Error al guardar cambios.");
+
+    });
+
+}
+
+</script>
+
+<script>
+
+function guardarCita() {
+
+    const fecha = document.getElementById("fecha-cita").value;
+    const hora = document.getElementById("hora-cita").value;
+
+    const nombre = document.getElementById("cliente-nombre").value.trim();
+    const apellido = document.getElementById("cliente-apellido").value.trim();
+    const telefono = document.getElementById("cliente-telefono").value.trim();
+    const email = document.getElementById("cliente-email").value.trim();
+    const sexo = document.getElementById("cliente-sexo").value;
+
+    const duracion = parseInt(
+        document.getElementById("duracion").value
+    );
+
+    // 👇 ESTE ES EL CAMBIO CLAVE
+    const cliente_id = clienteExistente;
+
+    // VALIDACIONES
+    if (!fecha || !hora) {
+        alert("Debe seleccionar fecha y hora.");
+        return;
+    }
+
+    if (!duracion || duracion <= 0) {
+        alert("La duración debe ser mayor que 0.");
+        return;
+    }
+
+    // 👇 si NO hay cliente existente, exige datos
+    if (!cliente_id) {
+
+        if (!nombre || !apellido) {
+            alert("Debe seleccionar un cliente o ingresar uno nuevo.");
+            return;
+        }
+    }
+
+    if (servicios.length === 0) {
+
+        alert("Debe seleccionar al menos un servicio.");
+        return;
+    }
+
+
+    const servicios = [];
+
+    document
+        .querySelectorAll(".servicio-check:checked")
+        .forEach(check => {
+            servicios.push(check.value);
+        });
+
+    fetch("/citas/crear-ajax/", {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+
+        body: JSON.stringify({
+
+            fecha: fecha,
+            hora: hora,
+
+            cliente_id: cliente_id, // 👈 IMPORTANTE
+
+            nombre: nombre,
+            apellido: apellido,
+            telefono: telefono,
+            email: email,
+            sexo: sexo,
+
+            duracion: duracion,
+            servicios: servicios
+        })
+
+    })
+    
+
+    .then(response => response.json())
+
+    .then(data => {
+
+        if (data.error) {
+            alert(data.mensaje || "Ocurrió un error.");
+            return;
+        }
+
+        cerrarModal();
+        alert("Cita creada correctamente.");
+        location.reload();
+    })
+
+    .catch(error => {
+        console.error("ERROR COMPLETO", error);
+        alert("Error al guardar la cita.");
+    });
+}
+
+</script>
+
+{% endblock %}

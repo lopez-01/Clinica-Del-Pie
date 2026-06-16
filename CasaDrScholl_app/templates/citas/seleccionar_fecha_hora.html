@@ -19,15 +19,28 @@
             <form method="post">
                 {% csrf_token %}
 
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+
                 <div class="row">
                     <!-- Fecha -->
                     <div class="col-md-6 mb-4">
                         <label class="form-label fw-semibold">
                             {{ form.fecha.label }}
                         </label>
+
                         <div>
                             {{ form.fecha }}
                         </div>
+
+                        {% if form.fecha.errors %}
+                            <div class="text-danger mt-1">
+                                {{ form.fecha.errors }}
+                            </div>
+                        {% endif %}
                     </div>
 
                     <!-- Hora -->
@@ -35,18 +48,24 @@
                         <label class="form-label fw-semibold">
                             {{ form.hora.label }}
                         </label>
+
                         {{ form.hora }}
+
+                        {% if form.hora.errors %}
+                            <div class="text-danger mt-1">
+                                {{ form.hora.errors }}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
 
                 <!-- Botón -->
                 <div class="text-end mt-3">
-    <button type="submit" class="btn btn-primary btn-lg px-4">
-        Siguiente →
-    </button>
-</div>
+                    <button type="submit" class="btn btn-primary btn-lg px-4">
+                        Siguiente →
                     </button>
                 </div>
+                
 
             </form>
 

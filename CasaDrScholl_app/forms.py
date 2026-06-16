@@ -1,5 +1,6 @@
 from django import forms
 from .models import Cliente, Servicio, Operativo
+from datetime import time, datetime, date
 
 
 
@@ -64,24 +65,49 @@ class OperativoSelectForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
-from datetime import time, datetime
 
 class FechaHoraForm(forms.Form):
-    fecha = forms.DateField(
-        widget=forms.DateInput(attrs={
-    'type': 'date',
-    'class': 'form-control',
-    'min': datetime.today().strftime('%Y-%m-%d')
 
-        }),
+    fecha = forms.DateField(
+        widget=forms.DateInput(
+            attrs={
+                'type': 'date',
+                'class': 'form-control',
+                'min': datetime.today().strftime('%Y-%m-%d')
+            },
+            format='%Y-%m-%d'
+        ),
+        initial=date.today,
         required=True,
         label="Seleccione fecha"
     )
 
-    HORA_CHOICES = [
-        (time(hour=h).strftime('%H:%M'), time(hour=h).strftime('%I:%M %p'))
-        for h in range(8, 18)
-    ]
+    HORA_CHOICES = []
+
+    for hora in range(8, 17):
+        for minuto in [0, 15, 30, 45]:
+
+            valor = f"{hora:02d}:{minuto:02d}"
+
+            etiqueta = datetime.strptime(
+                valor,
+                "%H:%M"
+            ).strftime("%I:%M %p")
+
+            HORA_CHOICES.append(
+                (valor, etiqueta)
+            )
+
+    valor = "17:00"
+
+    etiqueta = datetime.strptime(
+        valor,
+        "%H:%M"
+    ).strftime("%I:%M %p")
+
+    HORA_CHOICES.append(
+        (valor, etiqueta)
+    )
 
     hora = forms.ChoiceField(
         choices=HORA_CHOICES,
@@ -89,7 +115,44 @@ class FechaHoraForm(forms.Form):
         label="Seleccione hora",
         widget=forms.Select(attrs={'class': 'form-select'})
     )
+
+    def clean_fecha(self):
+        fecha = self.cleaned_data['fecha']
+
+        if fecha < date.today():
+            raise forms.ValidationError(
+                "No se pueden registrar citas en fechas pasadas."
+            )
+        
+        if fecha.weekday() == 0:
+            raise forms.ValidationError(
+                "La clínica no atiende los lunes."
+            )
+
+        return fecha
     
+    def clean(self):
+        cleaned_data = super().clean()
+
+        fecha = cleaned_data.get('fecha')
+        hora = cleaned_data.get('hora')
+
+        if fecha and hora:
+
+            ahora = datetime.now()
+
+            fecha_hora_cita = datetime.strptime(
+                f"{fecha} {hora}",
+                "%Y-%m-%d %H:%M"
+            )
+
+            if fecha_hora_cita < ahora:
+                raise forms.ValidationError(
+                    "No se puede registrar una cita en una hora que ya pasó."
+                )
+
+        return cleaned_data
+
 
 class PropuestaCitaForm(forms.Form):
     nombre = forms.CharField(
@@ -114,3 +177,4 @@ class PropuestaCitaForm(forms.Form):
         widget=forms.Textarea(attrs={'class': 'form-control'}),
         label="Propuesta de día"
     )
+
