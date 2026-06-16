@@ -5,134 +5,119 @@
 {% block content %}
 <section>
     <div class="container">
-        <h2 class="mb-4">Panel Operativo</h2>
+        <section class="dashboard-hero">
+            <div>
+                <p class="section-kicker">Panel operativo</p>
+                <h2>Agenda y atencion</h2>
+                <p>Revisa tus citas, filtra por estado y entra al detalle para facturar o dar seguimiento.</p>
+            </div>
+            <a href="{% url 'seleccionar_servicios' %}" class="btn btn-primary">
+                Registrar nueva cita
+            </a>
+        </section>
 
-        <div class="row mb-5">
-            <div class="col-md-3">
-                <a href="{% url 'seleccionar_servicios' %}" class="btn btn-primary w-100 py-3">
-                    Registrar Nueva Cita
-                </a>
-            </div>
-            <div class="col-md-3">
-                <a href="{% url 'operativo' %}?estado=Pendiente" class="btn btn-warning w-100 py-3">
-                    Ver Citas Pendientes
-                </a>
-            </div>
-            <div class="col-md-3">
-                <a href="{% url 'operativo' %}?estado=Atendida" class="btn btn-success w-100 py-3">
-                    Ver Citas Atendidas
-                </a>
-            </div>
-            <div class="col-md-3">
-                <a href="{% url 'operativo' %}" class="btn btn-secondary w-100 py-3">
-                    Ver Todas las Citas
-                </a>
-            </div>
+        <div class="action-grid action-grid-three mb-4">
+            <a href="{% url 'operativo' %}?estado=Pendiente" class="action-card action-card-amber">
+                <span>Filtro</span>
+                <strong>Pendientes</strong>
+                <small>Consulta citas aun por atender.</small>
+            </a>
+            <a href="{% url 'operativo' %}?estado=Atendida" class="action-card action-card-green">
+                <span>Filtro</span>
+                <strong>Atendidas</strong>
+                <small>Historial de citas finalizadas.</small>
+            </a>
+            <a href="{% url 'operativo' %}" class="action-card action-card-dark">
+                <span>Vista</span>
+                <strong>Todas</strong>
+                <small>Quita filtros de la agenda.</small>
+            </a>
         </div>
 
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Cliente</th>
-                    <th>Fecha</th>
-                    <th>Hora</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-
-            <tbody>
-            {% for cita in citas %}
-                <tr>
-                    <td>{{ cita.cliente.nombre }} {{ cita.cliente.apellido }}</td>
-
-                    <td>{{ cita.fechahora|date:"Y-m-d" }}</td>
-
-                    <td>{{ cita.fechahora|time:"h:i A" }}</td>
-
-                    <td>
-                        {% if cita.estado %}
-                            <div class="d-flex justify-content-between align-items-center">
-
-                                {% if cita.estado.nombre_estado == 'Programada' %}
-                                    <span class="badge bg-success">Programada</span>
-
-                                    <a href="{% url 'cerrar_cita' cita.id_cita %}"
-                                       class="btn btn-sm btn-danger">
-                                       Cancelar
-                                    </a>
-
-                                {% elif cita.estado.nombre_estado == 'Pendiente' %}
-                                    <span class="badge bg-warning text-dark">Pendiente</span>
-
-                                    <a href="{% url 'cerrar_cita' cita.id_cita %}"
-                                       class="btn btn-sm btn-danger">
-                                       Cancelar
-                                    </a>
-
-                                {% elif cita.estado.nombre_estado == 'Atendida' %}
-                                    <span class="badge bg-success">Atendida</span>
-
-                                {% elif cita.estado.nombre_estado == 'Cancelada' %}
-                                    <span class="badge bg-danger">Cancelada</span>
-
-                                {% endif %}
-                            </div>
-
-                        {% else %}
-                            <span class="badge bg-secondary">Sin estado</span>
-                        {% endif %}
-                    </td>
-
-                    <td>
-                        <a href="{% url 'detalle_cita' cita.id_cita %}"
-                           class="btn btn-sm btn-primary">
-                            Ver
-                        </a>
-                    </td>
-
-                </tr>
-
-            {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center">
-                        No hay citas registradas 😢
-                    </td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-
-        <div class="row text-center">
-            <div class="col-md-4">
-                <div class="p-3 border rounded">
-                    <h5>Citas Totales</h5>
-                    <p class="display-4">{{ citas|length }}</p>
+        <div class="table-panel mb-4">
+            <div class="table-panel-header">
+                <div>
+                    <p class="section-kicker">Agenda</p>
+                    <h3>Citas registradas</h3>
                 </div>
             </div>
 
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                {% for cita in citas %}
+                    <tr>
+                        <td>{{ cita.cliente.nombre }} {{ cita.cliente.apellido }}</td>
+                        <td>{{ cita.fechahora|date:"Y-m-d" }}</td>
+                        <td>{{ cita.fechahora|time:"h:i A" }}</td>
+                        <td>
+                            {% if cita.estado %}
+                                <div class="d-flex gap-2 align-items-center flex-wrap">
+                                    {% if cita.estado.nombre_estado == 'Programada' %}
+                                        <span class="badge bg-success">Programada</span>
+                                        <a href="{% url 'cerrar_cita' cita.id_cita %}" class="btn btn-sm btn-danger">Cancelar</a>
+                                    {% elif cita.estado.nombre_estado == 'Pendiente' %}
+                                        <span class="badge bg-warning text-dark">Pendiente</span>
+                                        <a href="{% url 'cerrar_cita' cita.id_cita %}" class="btn btn-sm btn-danger">Cancelar</a>
+                                    {% elif cita.estado.nombre_estado == 'Atendida' %}
+                                        <span class="badge bg-success">Atendida</span>
+                                    {% elif cita.estado.nombre_estado == 'Cancelada' %}
+                                        <span class="badge bg-danger">Cancelada</span>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span class="badge bg-secondary">Sin estado</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'detalle_cita' cita.id_cita %}" class="btn btn-sm btn-primary">
+                                Ver detalle
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4">
+                            No hay citas registradas.
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="row g-3 text-center">
             <div class="col-md-4">
-                <div class="p-3 border rounded">
-                    <h5>Total Citas Hoy</h5>
-                    <p class="display-4">{{ total_citas_hoy }}</p>
+                <div class="metric-card">
+                    <span>Citas totales</span>
+                    <strong>{{ citas|length }}</strong>
+                    <small>Segun el filtro actual</small>
                 </div>
             </div>
-
             <div class="col-md-4">
-                <div class="p-3 border rounded">
-                    <h5>Citas Confirmadas</h5>
-                    <p class="display-4">{{ citas_confirmadas }}</p>
+                <div class="metric-card">
+                    <span>Hoy</span>
+                    <strong>{{ total_citas_hoy }}</strong>
+                    <small>Citas para la fecha actual</small>
                 </div>
             </div>
-
             <div class="col-md-4">
-                <div class="p-3 border rounded">
-                    <h5>Citas Pendientes</h5>
-                    <p class="display-4">{{ citas_pendientes }}</p>
+                <div class="metric-card">
+                    <span>Confirmadas</span>
+                    <strong>{{ citas_confirmadas }}</strong>
+                    <small>Estado programada</small>
                 </div>
             </div>
         </div>
-
     </div>
 </section>
 {% endblock %}

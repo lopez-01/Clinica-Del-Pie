@@ -4,73 +4,82 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Clínica Dr. Scholl - {% block title %}{% endblock %}</title>
+    <title>Clinica Dr. Scholl - {% block title %}{% endblock %}</title>
 
-    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/app-theme.css' %}" />
 
     {% block css %}{% endblock %}
 </head>
 
-<body>
-
+<body class="app-shell">
 <header>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
-        <img src="{% static 'imagenes/DrScholls_color_logo.png' %}" alt="Clínica Dr. Scholl" height="50px" class="px-2" />
+    <nav class="navbar navbar-expand-lg navbar-dark app-navbar">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand app-brand" href="{% url 'home' %}">
+                <img src="{% static 'imagenes/DrScholls_color_logo.png' %}" alt="Clinica Dr. Scholl" />
+                <span>Dr. Scholl</span>
+            </a>
 
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
 
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav">
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+                    {% if request.user.personal.administrativo_set.exists %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'administrativo' %}">
+                                Panel Administrativo
+                            </a>
+                        </li>
 
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'iniciar_cita' %}">
+                                Nuevo Cliente
+                            </a>
+                        </li>
+                    {% endif %}
 
-                <!-- 👨‍💼 ADMINISTRATIVO -->
-                {% if request.user.personal.administrativo_set.exists %}
+                    {% if request.user.personal.operativo_set.exists %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == '/operativo/' %}active{% endif %}" href="{% url 'operativo' %}">
+                                Panel Operativo
+                            </a>
+                        </li>
+                    {% endif %}
+
                     <li class="nav-item">
-                        <a class="nav-link text-white" href="{% url 'administrativo' %}">
-                            Panel Administrativo
-                        </a>
+                        <form action="{% url 'logout' %}" method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-light btn-sm app-logout">
+                                Cerrar sesion
+                            </button>
+                        </form>
                     </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link text-white" href="{% url 'iniciar_cita' %}">
-                            Nuevo Cliente
-                        </a>
-                    </li>
-                {% endif %}
-
-                <!-- 🧑‍⚕️ OPERATIVO -->
-                {% if request.user.personal.operativo_set.exists %}
-                    <li class="nav-item">
-                        <a class="nav-link text-white {% if request.path == '/operativo/' %}active{% endif %}" href="{% url 'operativo' %}">
-                            Panel Operativo
-                        </a>
-                    </li>
-                {% endif %}
-
-                <!-- 🚪 LOGOUT -->
-                <li class="nav-item">
-                    <form action="{% url 'logout' %}" method="post" style="display:inline;">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-light btn-sm ms-2">
-                            Cerrar sesión
-                        </button>
-                    </form>
-                </li>
-
-            </ul>
+                </ul>
+            </div>
         </div>
     </nav>
 </header>
 
-<main class="container mt-4">
+<main class="app-main">
+    {% if messages %}
+        <div class="container app-alerts">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} shadow-sm">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     {% block content %}{% endblock %}
 </main>
 
-<footer class="text-center mt-4">
-    <p>© 2025 Clínica Dr. Scholl | Todos los derechos reservados</p>
+<footer class="app-footer">
+    <p>2025 Clinica Dr. Scholl | Todos los derechos reservados</p>
 </footer>
 
 <script src="{% static 'js/script.js' %}"></script>

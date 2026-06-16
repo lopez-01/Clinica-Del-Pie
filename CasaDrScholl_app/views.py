@@ -1,8 +1,24 @@
 from django.contrib import messages
+from django.db.models import Q
 from django.http import JsonResponse
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import MetodoPago, Servicio, Cliente, Cita, Operativo, Personal, Administrativo, Estado, Propuestas_Citas, ServicioOperativo, CitaServicio, Factura, ServicioFactura, EstadoPago, MetodoPago
+from .models import (
+    CitaServicio,
+    Servicio,
+    Cliente,
+    Cita,
+    Operativo,
+    Personal,
+    Administrativo,
+    Estado,
+    Propuestas_Citas,
+    ServicioOperativo,
+    Factura,
+    ServicioFactura,
+    EstadoPago,
+    MetodoPago,
+)
 from .forms import ClienteForm, ServicioSelectForm, OperativoSelectForm, FechaHoraForm
 from django.urls import reverse
 from datetime import date, datetime, timedelta, time
@@ -1157,18 +1173,15 @@ def cerrar_cita(request, id_cita):
 
 @login_required
 def gestionar_empleados(request):
-
     empleados = Personal.objects.all()
 
     busqueda = request.GET.get('buscar')
-
     cargo_filtro = request.GET.get('cargo')
 
     if busqueda:
         empleados = empleados.filter(
-            nombre__icontains=busqueda
-        ) | empleados.filter(
-            apellido__icontains=busqueda
+            Q(nombre__icontains=busqueda) |
+            Q(apellido__icontains=busqueda)
         )
 
     if cargo_filtro == 'Operativo':
@@ -1226,6 +1239,10 @@ def detalle_empleado(request, id_personal):
     )
 
     servicios = []
+    citas_programadas = 0
+    citas_atendidas = 0
+    citas_canceladas = 0
+    ultimas_citas = []
 
     if Administrativo.objects.filter(personal=empleado).exists():
         cargo = "Administrativo"
@@ -1261,8 +1278,6 @@ def detalle_empleado(request, id_personal):
             'cliente',
             'estado'
         ).order_by('-fechahora')[:5]
-
-        print("TOTAL ULTIMAS:", ultimas_citas.count())
 
     else:
         cargo = "Sin asignar"
@@ -1372,7 +1387,9 @@ def ver_factura(request, id_factura):
     factura = get_object_or_404(
         Factura.objects.select_related(
             'cita',
-            'cita__cliente'
+            'cita__cliente',
+            'estado_pago',
+            'metodo_pago'
         ),
         id_factura=id_factura
     )
@@ -1396,14 +1413,15 @@ def listar_facturas(request):
 
     facturas = Factura.objects.select_related(
         'cita',
-        'cita__cliente'
+        'cita__cliente',
+        'estado_pago'
     ).order_by('-fecha_factura')
 
     estado = request.GET.get('estado')
 
     if estado:
         facturas = facturas.filter(
-            estado_pago=estado
+            estado_pago__nombre=estado
         )
 
     return render(
@@ -1455,7 +1473,7 @@ def pagar_factura(request, id_factura):
 
         metodo = get_object_or_404(MetodoPago, id_metodopago=metodo_id)
 
-        estado_pagada = EstadoPago.objects.get(id_estadopago=2)
+        estado_pagada = get_object_or_404(EstadoPago, nombre='Pagada')
 
         factura.estado_pago = estado_pagada
         factura.metodo_pago = metodo
@@ -1467,3 +1485,26 @@ def pagar_factura(request, id_factura):
         "factura": factura,
         "metodos": metodos
     })
+
+
+
+@login_required
+def anular_factura(request, id_factura):
+
+    factura = get_object_or_404(
+        Factura,
+        id_factura=id_factura
+    )
+
+    estado_anulada = get_object_or_404(
+        EstadoPago,
+        nombre='Anulada'
+    )
+
+    factura.estado_pago = estado_anulada
+    factura.save()
+
+    return redirect(
+        'ver_factura',
+        id_factura=factura.id_factura
+    )

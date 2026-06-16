@@ -7,7 +7,6 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
     path('', views.home, name='home'),
     path('web/', views.landing, name='landing'),
-    
     path('citas/iniciar/', views.iniciar_cita, name='iniciar_cita'),
     path('solicitud-web/', views.crear_solicitud_web, name='crear_solicitud_web'),
     path('inbox/', views.inbox, name='inbox'),
@@ -37,7 +36,6 @@ urlpatterns = [
     path('citas/confirmar_cita/', views.confirmar_cita, name='confirmar_cita'),
     path('citas/cerrar/<int:id_cita>/', views.cerrar_cita, name='cerrar_cita'),
     path('citas/<int:id_cita>/', views.detalle_cita, name='detalle_cita'),
-    path('factura/pagar/<int:id_factura>/', views.pagar_factura, name='pagar_factura'),
     path('citas/generar_factura/<int:id_cita>/', views.generar_factura, name='generar_factura'),
     path('citas/ver_factura/<int:id_factura>/', views.ver_factura, name='ver_factura'),
     path('citas/listar_facturas/', views.listar_facturas, name='listar_facturas'),

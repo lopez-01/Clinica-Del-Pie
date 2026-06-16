@@ -4,114 +4,111 @@
 
 {% block content %}
 <div class="container">
-    <h2 class="mb-4">Panel Administrativo</h2>
-
-    <!-- Botones principales -->
-        <div class="row mb-5">
-        <div class="col-md-3">
-            <a href="{% url 'gestionar_empleados' %}" class="btn btn-primary w-100 py-3">
-                Gestionar Empleados
-            </a>
+    <section class="dashboard-hero">
+        <div>
+            <p class="section-kicker">Panel administrativo</p>
+            <h2>Gestion de la clinica</h2>
+            <p>Accede rapido a empleados, solicitudes web, facturacion y reportes de la operacion diaria.</p>
         </div>
+        <a href="{% url 'iniciar_cita' %}" class="btn btn-primary">
+            Registrar nueva cita
+        </a>
+    </section>
 
-        <div class="col-md-3">
-            <button class="btn btn-secondary w-100 py-3">
-                Configurar Servicios
-            </button>
-        </div>
+    <div class="action-grid mb-4">
+        <a href="{% url 'gestionar_empleados' %}" class="action-card action-card-teal">
+            <span>Empleados</span>
+            <strong>Gestionar equipo</strong>
+            <small>Roles, datos y detalle de operativos.</small>
+        </a>
 
-        <div class="col-md-3">
-            <button class="btn btn-info w-100 py-3" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#reportesFinancieros">
-                Reportes Financieros
-            </button>
-        </div>
+        <a href="{% url 'servicios' %}" class="action-card action-card-amber">
+            <span>Servicios</span>
+            <strong>Configurar servicios</strong>
+            <small>Consulta la oferta y precios visibles.</small>
+        </a>
 
-        <!-- 👇 NUEVO BOTÓN -->
-        <div class="col-md-3">
-            <a href="{% url 'inbox' %}" class="btn btn-dark w-100 py-3">
-                Inbox 📥
-            </a>
-        </div>
+        <button class="action-card action-card-coral text-start" type="button" data-bs-toggle="collapse"
+                data-bs-target="#reportesFinancieros">
+            <span>Reportes</span>
+            <strong>Finanzas</strong>
+            <small>Revisa indicadores financieros rapidos.</small>
+        </button>
 
+        <a href="{% url 'inbox' %}" class="action-card action-card-dark">
+            <span>Solicitudes</span>
+            <strong>Inbox web</strong>
+            <small>Propuestas de cita pendientes.</small>
+        </a>
 
-        <div class="col-md-3">
-            <a href="{% url 'listar_facturas' %}" class="btn btn-success w-100 py-3">
-                Facturación 💰
-            </a>
-        </div>
-
+        <a href="{% url 'listar_facturas' %}" class="action-card action-card-green">
+            <span>Facturacion</span>
+            <strong>Facturas y pagos</strong>
+            <small>Control de estados y cobros.</small>
+        </a>
     </div>
 
-       <div class="collapse mt-4" id="reportesFinancieros">
-           <h4>Reportes Financieros Detallados</h4>
-           <div class="row g-3">
-               <div class="col-md-4">
-                   <div class="card border-primary shadow-sm">
-                       <div class="card-body">
-                           <h5 class="card-title">Gastos de Luz</h5>
-                           <p class="card-text display-6 text-danger">C$ 3,200</p>
-                           <small class="text-muted">Último mes</small>
-                       </div>
-                   </div>
-               </div>
-               <div class="col-md-4">
-                   <div class="card border-success shadow-sm">
-                      <div class="card-body">
-                          <h5 class="card-title">Ingresos Mensuales</h5>
-                          <p class="card-text display-6 text-success">C$ 25,000</p>
-                          <small class="text-muted">Último mes</small>
-                      </div>
-                  </div>
-               </div>
-                <div class="col-md-4">
-                    <div class="card border-warning shadow-sm">
-                      <div class="card-body">
-                          <h5 class="card-title">Gastos en Materiales</h5>
-                          <p class="card-text display-6 text-warning">C$ 7,800</p>
-                            <small class="text-muted">Último mes</small>
-                      </div>
-                  </div>
-              </div>
-              <div class="col-md-4">
-                  <div class="card border-info shadow-sm">
-                      <div class="card-body">
-                          <h5 class="card-title">Salarios</h5>
-                           <p class="card-text display-6 text-info">C$ 10,500</p>
-                          <small class="text-muted">Último mes</small>
-                      </div>
-                  </div>
-              </div>
-              <div class="col-md-4">
-                  <div class="card border-secondary shadow-sm">
-                      <div class="card-body">
-                          <h5 class="card-title">Otros Gastos</h5>
-                          <p class="card-text display-6 text-secondary">C$ 1,200</p>
-                          <small class="text-muted">Último mes</small>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      </div>
+    <div class="collapse mt-4" id="reportesFinancieros">
+        <h3 class="mb-3">Reportes financieros</h3>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="metric-card">
+                    <span>Gastos de luz</span>
+                    <strong>C$ 3,200</strong>
+                    <small>Ultimo mes</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="metric-card">
+                    <span>Ingresos mensuales</span>
+                    <strong>C$ 25,000</strong>
+                    <small>Ultimo mes</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="metric-card">
+                    <span>Materiales</span>
+                    <strong>C$ 7,800</strong>
+                    <small>Ultimo mes</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="metric-card">
+                    <span>Salarios</span>
+                    <strong>C$ 10,500</strong>
+                    <small>Ultimo mes</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="metric-card">
+                    <span>Otros gastos</span>
+                    <strong>C$ 1,200</strong>
+                    <small>Ultimo mes</small>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <!-- Resumen visual de cada botón -->
-    <div class="row text-center">
+    <div class="row g-3 text-center mt-4">
         <div class="col-md-4">
-            <div class="p-3 border rounded">
-                <h5>Empleados</h5>
-                <p class="display-4">12</p>
+            <div class="metric-card">
+                <span>Empleados</span>
+                <strong>12</strong>
+                <small>Equipo registrado</small>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="p-3 border rounded">
-                <h5>Servicios</h5>
-                <p class="display-4">8</p>
+            <div class="metric-card">
+                <span>Servicios</span>
+                <strong>8</strong>
+                <small>Disponibles para citas</small>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="p-3 border rounded">
-                <h5>Reportes</h5>
-                <p class="display-4">5</p>
+            <div class="metric-card">
+                <span>Reportes</span>
+                <strong>5</strong>
+                <small>Indicadores visibles</small>
             </div>
         </div>
     </div>
