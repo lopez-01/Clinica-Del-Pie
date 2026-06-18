@@ -156,7 +156,7 @@ def crear_cita_desde_propuesta(request, id):
     request.session['propuesta_id'] = propuesta.ID_Propuesta
     request.session['flujo_origen'] = 'inbox'
 
-    return redirect('seleccionar_servicios')
+    return redirect('seleccionar_operativo')
 
 
 def listar_clientes(request):

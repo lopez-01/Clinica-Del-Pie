@@ -144,6 +144,18 @@
                     class="form-control">
             </div>
 
+            <div class="col-12 mb-3">
+
+                <div
+                    id="rango-horario"
+                    class="alert alert-info">
+
+                    --
+
+                </div>
+
+            </div>
+
             <div class="col-12">
                 <h5>Servicios</h5>
             </div>
@@ -629,7 +641,6 @@ document.addEventListener("DOMContentLoaded", function () {
         el.style.height = el.dataset.height + "px";
     });
 
-
     // SERVICIOS
     document
     .querySelectorAll(".servicio-check")
@@ -647,9 +658,45 @@ document.addEventListener("DOMContentLoaded", function () {
     .getElementById("buscar-cliente")
     .addEventListener("input", buscarClientes);
 
-    document.getElementById("btn-nuevo-cliente").addEventListener("click", function () {
+    document
+    .getElementById("btn-nuevo-cliente")
+    .addEventListener("click", function () {
+
         limpiarClienteSeleccionado();
+
     });
+
+    // DURACIÓN
+    const duracion =
+        document.getElementById("duracion");
+
+    duracion.dataset.auto = "true";
+
+    duracion.addEventListener(
+        "input",
+        function () {
+
+            this.dataset.auto = "false";
+
+            actualizarHoraFin();
+
+        }
+    );
+
+    // NUEVOS LISTENERS
+    document
+    .getElementById("hora-cita")
+    .addEventListener(
+        "change",
+        actualizarHoraFin
+    );
+
+    document
+    .getElementById("fecha-cita")
+    .addEventListener(
+        "change",
+        actualizarHoraFin
+    );
 
 });
 
@@ -781,6 +828,9 @@ function cerrarModal() {
     document.querySelectorAll(".servicio-check").forEach(check => {
         check.checked = false;
     });
+    document.getElementById(
+        "duracion"
+    ).dataset.auto = "true";
 
 }
 
@@ -827,7 +877,62 @@ function actualizarDuracion() {
         "duracion-sugerida"
     ).value = total;
 
+    const duracionFinal =
+        document.getElementById("duracion");
+        duracionFinal.dataset.auto = "true";
+
+    if (
+        duracionFinal.value == 0 ||
+        duracionFinal.dataset.auto == "true"
+    ){
+        duracionFinal.value = total;
+    }
+
+    actualizarHoraFin();
+
 }
+
+
+function actualizarHoraFin() {
+
+    const fecha =
+        document.getElementById("fecha-cita").value;
+
+    const hora =
+        document.getElementById("hora-cita").value;
+
+    const duracion =
+        parseInt(
+            document.getElementById("duracion").value
+        ) || 0;
+
+    if (!fecha || !hora) return;
+
+    const inicio =
+        new Date(`${fecha}T${hora}:00`);
+
+    const fin =
+        new Date(
+            inicio.getTime()
+            + duracion * 60000
+        );
+
+    const horaFin =
+        fin.toLocaleTimeString(
+            [],
+            {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false
+            }
+        );
+
+    document.getElementById(
+        "rango-horario"
+    ).innerHTML =
+        `${hora} - ${horaFin}`;
+}
+
 
 // ================= CLICK CREATE =================
 function crearDesdeClick(event, el) {
@@ -869,7 +974,7 @@ function crearDesdeClick(event, el) {
 
     document.getElementById("fecha-cita").value = dia;
     document.getElementById("hora-cita").value = horaSeleccionada;
-
+    document.getElementById("duracion").dataset.auto = "true";
     document.getElementById("citaModal").style.display = "block";
 }
 
