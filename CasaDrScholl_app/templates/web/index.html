@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="{% static 'web/css/bootstrap.css' %}">
     <link rel="stylesheet" href="{% static 'web/css/fonts.css' %}">
     <link rel="stylesheet" href="{% static 'web/css/style.css' %}">
-    <link rel="stylesheet" href="{% static 'css/public-refresh.css' %}">
+    <link rel="stylesheet" href="{% static 'css/public-refresh.css' %}?v=servicios-color-20260618b">
     <style>.ie-panel{display: none;background: #212121;padding: 10px 0;box-shadow: 3px 3px 5px 0 rgba(0,0,0,.3);clear: both;text-align:center;position: relative;z-index: 1;} html.ie-10 .ie-panel, html.lt-ie-10 .ie-panel {display: block;}</style>
   </head>
   <body>
@@ -79,11 +79,11 @@
          <section style="background-color: rgb(178, 255, 255);" >
         <section class="section swiper-container swiper-slider swiper-slider-classic" data-loop="true" data-autoplay="4859" data-simulate-touch="true" data-direction="vertical" data-nav="false" style="background-color: rgb(178, 255, 255);" >
           <div class="swiper-wrapper text-center">
-            <div class="swiper-slide" data-slide-bg="{% static 'imagenes/primera.jpg' %}">
+            <div class="swiper-slide" data-slide-bg="{% static 'imagenes/inicio.jpeg' %}">
               <div class="swiper-slide-caption section-md">
                 <div class="container">
                   <h1 data-caption-animate="fadeInLeft" data-caption-delay="0">Cuidado Integral del Pie</h1>
-                  <p class="text-width-large" data-caption-animate="fadeInRight" data-caption-delay="100">Brindamos tratamientos especializados para el cuidado de los pies, atendiendo tanto a pacientes diabéticos como no diabéticos con técnicas seguras y profesionales..</p><a class="button button-primary button-ujarak" href="#modalCta" data-toggle="modal" data-caption-animate="fadeInUp" data-caption-delay="200">Get in touch</a>
+                  <p class="text-width-large" data-caption-animate="fadeInRight" data-caption-delay="100">Brindamos tratamientos especializados para el cuidado de los pies, atendiendo tanto a pacientes diabéticos como no diabéticos con técnicas seguras y profesionales..</p>
                 </div>
               </div>
             </div>
@@ -91,7 +91,7 @@
               <div class="swiper-slide-caption section-md">
                 <div class="container">
                   <h1 data-caption-animate="fadeInLeft" data-caption-delay="0">Equipo Profesional Especializado</h1>
-                  <p class="text-width-large" data-caption-animate="fadeInRight" data-caption-delay="100">Contamos con personal capacitado y con experiencia en el tratamiento de afecciones podológicas, comprometidos con la salud y bienestar de cada paciente..</p><a class="button button-primary button-ujarak" href="#modalCta" data-toggle="modal" data-caption-animate="fadeInUp" data-caption-delay="200">Get in touch</a>
+                  <p class="text-width-large" data-caption-animate="fadeInRight" data-caption-delay="100">Contamos con personal capacitado y con experiencia en el tratamiento de afecciones podológicas, comprometidos con la salud y bienestar de cada paciente..</p>
                 </div>
               </div>
             </div>
@@ -99,7 +99,7 @@
               <div class="swiper-slide-caption section-md">
                 <div class="container">
                   <h1 data-caption-animate="fadeInLeft" data-caption-delay="0">Tratamientos Seguros y Efectivos</h1>
-                  <p class="text-width-large" data-caption-animate="fadeInRight" data-caption-delay="100">Aplicamos procedimientos modernos y protocolos de higiene estrictos, garantizando resultados efectivos en el cuidado y recuperación de tus pies..</p><a class="button button-primary button-ujarak" href="#modalCta" data-toggle="modal" data-caption-animate="fadeInUp" data-caption-delay="200">Get in touch</a>
+                  <p class="text-width-large" data-caption-animate="fadeInRight" data-caption-delay="100">Aplicamos procedimientos modernos y protocolos de higiene estrictos, garantizando resultados efectivos en el cuidado y recuperación de tus pies..</p>
                 </div>
               </div>
             </div>
@@ -114,17 +114,17 @@
 
       </div>
       <!-- See all services-->
-      <section class="section section-sm section-first bg-default text-center" id="services" style="background-color: white" >
+      <section class="section section-sm section-first bg-default text-center public-services-section" id="services" style="background-color: white" >
         <div class="container">
-          <div class="row row-30 justify-content-center">
-            <div class="col-md-7 col-lg-5 col-xl-6 text-lg-left wow fadeInUp"><img src="{% static 'imagenes/servicio.jpg' %}" alt="" width="415" height="592"/>
+          <div class="row row-30 justify-content-center public-services-shell">
+            <div class="col-md-7 col-lg-5 col-xl-6 text-lg-left wow fadeInUp public-services-photo"><img src="{% static 'imagenes/servicio.jpg' %}" alt="" width="415" height="592"/>
             </div>
-         <div class="col-lg-7 col-xl-6">
-  <div class="text-center mb-4">
+         <div class="col-lg-7 col-xl-6 public-services-content">
+  <div class="text-center mb-4 public-services-title">
     <h3 class="box-icon-modern-big-title">¿Qué ofrecemos?</h3>
   </div>
 
-  <div class="row row-30">
+  <div class="row row-30 public-services-list">
     <div class="col-sm-6 wow fadeInRight" data-wow-delay=".1s">
       <article class="box-icon-modern box-icon-modern-2">
         <div class="box-icon-modern-icon linearicons-heart"></div>
@@ -331,7 +331,7 @@
       {% if messages %}
     <div class="container mt-3">
       {% for message in messages %}
-        <div class="alert alert-success">
+        <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %}">
           {{ message }}
         </div>
       {% endfor %}
@@ -344,10 +344,10 @@
   <div class="container">
     <article class="title-classic">
       <div class="title-classic-title">
-        <h3>Solicita Tu Cita</h3>
+        <h3>Solicita una cita</h3>
       </div>
       <div class="title-classic-text">
-        <p>Programa tu cita y da el primer paso hacia unos pies sanos.</p>
+        <p>Envianos tus datos y nuestro equipo se pondra en contacto contigo para confirmar disponibilidad.</p>
       </div>
     </article>
   <div class="row row-14 gutters-14">
@@ -362,14 +362,23 @@
       <!-- Email -->
       <div class="col-md-4">
         <div class="form-wrap">
-          <input class="form-input" type="email" name="email" placeholder="E-mail"  required>
+          <input class="form-input" type="email" name="email" placeholder="E-mail opcional">
         </div>
       </div>
 
       <!-- Teléfono -->
       <div class="col-md-4">
         <div class="form-wrap">
-          <input class="form-input" type="text" name="numero_telefonico" placeholder="Numero Telefonico" >
+          <input
+            class="form-input"
+            type="tel"
+            name="numero_telefonico"
+            placeholder="Telefono de 8 digitos"
+            inputmode="numeric"
+            minlength="8"
+            maxlength="8"
+            pattern="[0-9]{8}"
+            required>
 
         </div>
       </div>
@@ -377,14 +386,14 @@
       <!-- Propuesta -->
       <div class="col-12">
         <div class="form-wrap">
-          <textarea class="form-input textarea-lg" name="propuesta_de_dia" placeholder="Propuesta del dia" required></textarea>
+          <textarea class="form-input textarea-lg" name="propuesta_de_dia" placeholder="Servicio, fecha u horario preferido" required></textarea>
         </div>
       </div>
 
     </div>
 
     <button class="button button-primary button-pipaluk" type="submit">
-      Enviar mensaje
+      Enviar solicitud
     </button>
 
   </div>

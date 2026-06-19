@@ -1,6 +1,8 @@
 from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import (
@@ -27,6 +29,8 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET, require_POST
 import json
 from django.db.models import Q
+
+MAX_SOLICITUDES_WEB_POR_DIA = 5
 
 
 def login_view(request):
@@ -108,22 +112,89 @@ def lista_clientes(request):
 
 
 def crear_solicitud_web(request):
-    if request.method == 'POST':
-        Propuestas_Citas.objects.create(
-            Nombre=request.POST.get('nombre'),
-            Email=request.POST.get('email'),
-            Numero_telefonico=request.POST.get('numero_telefonico'),
-            Propuesta_De_Dia=request.POST.get('propuesta_de_dia'),
-            Fecha=timezone.now()
+    if request.method != 'POST':
+        return redirect('landing')
+
+    nombre = request.POST.get('nombre', '').strip()
+    email = request.POST.get('email', '').strip()
+    telefono = ''.join(
+        digito
+        for digito in request.POST.get('numero_telefonico', '')
+        if digito.isdigit()
+    )
+    propuesta = request.POST.get('propuesta_de_dia', '').strip()
+
+    if not nombre or not telefono or not propuesta:
+        messages.error(
+            request,
+            "Nombre, telefono y mensaje son obligatorios."
         )
-        return render(request, 'web/index.html', {
-            'success': True
-        })
+        return render(request, 'web/index.html', status=400)
 
-    messages.success(request, "Solicitud enviada correctamente")
-    return redirect('landing')
+    if len(telefono) != 8:
+        messages.error(
+            request,
+            "El telefono debe tener exactamente 8 numeros."
+        )
+        return render(request, 'web/index.html', status=400)
+
+    if email:
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(
+                request,
+                "Ingrese un correo valido o deje el campo vacio."
+            )
+            return render(request, 'web/index.html', status=400)
+
+    if Propuestas_Citas.objects.filter(
+        Numero_telefonico=telefono,
+        Atendida=False
+    ).exists():
+        messages.warning(
+            request,
+            "Ya tienes una solicitud pendiente. La clinica se pondra en contacto contigo para confirmarla."
+        )
+        return render(request, 'web/index.html', status=400)
+
+    hoy = timezone.localdate()
+    inicio_dia = timezone.make_aware(
+        datetime.combine(hoy, time.min)
+    )
+    fin_dia = inicio_dia + timedelta(days=1)
+
+    solicitudes_hoy = Propuestas_Citas.objects.filter(
+        Numero_telefonico=telefono,
+        Fecha__gte=inicio_dia,
+        Fecha__lt=fin_dia
+    ).count()
+
+    if solicitudes_hoy >= MAX_SOLICITUDES_WEB_POR_DIA:
+        messages.error(
+            request,
+            "Llegaste al limite de solicitudes por hoy. Intenta de nuevo manana o contacta directamente a la clinica."
+        )
+        return render(request, 'web/index.html', status=429)
+
+    Propuestas_Citas.objects.create(
+        Nombre=nombre,
+        Email=email,
+        Numero_telefonico=telefono,
+        Propuesta_De_Dia=propuesta,
+        Estado='Pendiente',
+        Atendida=False,
+        Fecha=timezone.now()
+    )
+
+    messages.success(
+        request,
+        "Solicitud enviada correctamente. La clinica revisara tu solicitud y se pondra en contacto contigo para confirmar la cita."
+    )
+    return redirect(f"{reverse('landing')}#contacts")
 
 
+@login_required
 def inbox(request):
     solicitudes = Propuestas_Citas.objects.filter(
         Atendida=False
@@ -134,6 +205,7 @@ def inbox(request):
     })
 
 
+@login_required
 def rechazar_propuesta(request, id):
     propuesta = get_object_or_404(Propuestas_Citas, ID_Propuesta=id)
 
@@ -143,8 +215,16 @@ def rechazar_propuesta(request, id):
     return redirect('inbox')
 
 
+@login_required
 def crear_cita_desde_propuesta(request, id):
     propuesta = get_object_or_404(Propuestas_Citas, ID_Propuesta=id)
+
+    if propuesta.Atendida:
+        messages.warning(
+            request,
+            "Esta solicitud ya fue atendida."
+        )
+        return redirect('inbox')
 
     request.session['cliente_temp'] = {
         'nombre': propuesta.Nombre,
@@ -514,9 +594,9 @@ def calendar_view(request):
         "eventos": eventos,
         "offset": offset,
         "Clientes": Cliente.objects.all(),
-        "duracion": c.duracion_minutos or 30,
-        "hora_texto": inicio.strftime("%H:%M"),
-        "hora_fin": fin.strftime("%H:%M"),
+        "duracion": 30,
+        "hora_texto": "",
+        "hora_fin": "",
         "servicios": servicios,
     })
 
@@ -603,15 +683,17 @@ def crear_cita_ajax(request):
 
     data = json.loads(request.body)
 
-    fecha = data["fecha"]
-    hora = data["hora"]
-    duracion = int(data["duracion"])
+    fecha = data.get("fecha")
+    hora = data.get("hora")
+    duracion = int(data.get("duracion") or 0)
+    cliente_id = data.get("cliente_id")
 
-    nombre = data["nombre"].strip()
-    apellido = data["apellido"].strip()
-    telefono = data["telefono"].strip()
-    email = data["email"].strip()
-    sexo = data["sexo"]
+    nombre = data.get("nombre", "").strip()
+    apellido = data.get("apellido", "").strip()
+    telefono = data.get("telefono", "").strip()
+    email = data.get("email", "").strip()
+    sexo = data.get("sexo", "").strip()
+    servicios_ids = data.get("servicios", [])
 
     operativo_id = request.session.get("operativo_id")
 
@@ -619,6 +701,12 @@ def crear_cita_ajax(request):
         Operativo,
         id_operativo=operativo_id
     )
+
+    if not fecha or not hora:
+        return JsonResponse({
+            "error": True,
+            "mensaje": "Debe seleccionar fecha y hora."
+        })
 
     inicio = datetime.strptime(
         f"{fecha} {hora}",
@@ -629,11 +717,11 @@ def crear_cita_ajax(request):
 
     ahora = timezone.localtime()
 
-    # ❗ VALIDACIÓN PRIMERO
-    if not telefono and not email:
+    # VALIDACION PRIMERO
+    if not cliente_id and not telefono:
         return JsonResponse({
             "error": True,
-            "mensaje": "Debe ingresar al menos teléfono o correo para identificar al cliente."
+            "mensaje": "El telefono es obligatorio y debe tener 8 numeros."
         })
 
     if inicio < ahora:
@@ -642,10 +730,39 @@ def crear_cita_ajax(request):
             "mensaje": "No se pueden crear citas en fechas pasadas."
         })
 
-    cliente = None
+    if duracion <= 0:
+        return JsonResponse({
+            "error": True,
+            "mensaje": "La duracion debe ser mayor que 0."
+        })
+
+    if not servicios_ids:
+        return JsonResponse({
+            "error": True,
+            "mensaje": "Debe seleccionar al menos un servicio."
+        })
+
+    if not cliente_id:
+        if not nombre or not apellido or not telefono or not sexo:
+            return JsonResponse({
+                "error": True,
+                "mensaje": "Nombre, apellido, telefono y sexo son obligatorios."
+            })
+
+        if not telefono.isdigit() or len(telefono) != 8:
+            return JsonResponse({
+                "error": True,
+                "mensaje": "El telefono debe tener exactamente 8 numeros."
+            })
+
+    cliente = (
+        get_object_or_404(Cliente, id_cliente=cliente_id)
+        if cliente_id
+        else None
+    )
 
     # BUSCAR CLIENTE EXISTENTE
-    if telefono:
+    if not cliente and telefono:
         cliente = Cliente.objects.filter(n_telefono=telefono).first()
 
     if not cliente and email:
@@ -680,8 +797,6 @@ def crear_cita_ajax(request):
         duracion_minutos=duracion,
         estado=Estado.objects.get(nombre_estado="Programada")
     )
-
-    servicios_ids = data.get("servicios", [])
 
     for servicio_id in servicios_ids:
 
@@ -1376,8 +1491,8 @@ def generar_factura(request, id_cita):
         )
 
     return redirect(
-        'detalle_cita',
-        id_cita=cita.id_cita
+        'ver_factura',
+        id_factura=factura.id_factura
     )
 
 
@@ -1406,6 +1521,196 @@ def ver_factura(request, id_factura):
             'servicios': servicios,
         }
     )
+
+
+def _pdf_escape(texto):
+    texto = str(texto or "")
+    return (
+        texto
+        .replace("\\", "\\\\")
+        .replace("(", "\\(")
+        .replace(")", "\\)")
+    )
+
+
+def _pdf_text(comandos, texto, x, y, size=10, bold=False):
+    fuente = "F2" if bold else "F1"
+    comandos.append(
+        f"BT /{fuente} {size} Tf {x} {y} Td ({_pdf_escape(texto)}) Tj ET"
+    )
+
+
+def _pdf_line(comandos, x1, y1, x2, y2):
+    comandos.append(f"{x1} {y1} m {x2} {y2} l S")
+
+
+def _construir_factura_pdf(factura, servicios):
+    cliente = factura.cita.cliente
+    fecha_factura = (
+        timezone.localtime(factura.fecha_factura).strftime("%d/%m/%Y %I:%M %p")
+        if factura.fecha_factura
+        else "No definida"
+    )
+    fecha_cita = timezone.localtime(
+        factura.cita.fechahora
+    ).strftime("%d/%m/%Y")
+    hora_cita = timezone.localtime(
+        factura.cita.fechahora
+    ).strftime("%I:%M %p")
+    estado = (
+        factura.estado_pago.nombre
+        if factura.estado_pago
+        else "No definido"
+    )
+    metodo = (
+        factura.metodo_pago.nombre
+        if factura.metodo_pago
+        else "No definido"
+    )
+
+    comandos = [
+        "0.05 0.45 0.48 rg 0 720 612 72 re f",
+        "1 1 1 rg",
+    ]
+    _pdf_text(comandos, "Clinica Dr. Scholl", 56, 755, 20, True)
+    _pdf_text(comandos, f"Factura #{factura.id_factura}", 430, 755, 18, True)
+
+    comandos.append("0 0 0 rg")
+    _pdf_text(comandos, "Datos de la factura", 56, 690, 14, True)
+    _pdf_line(comandos, 56, 680, 556, 680)
+
+    datos = [
+        ("Cliente", f"{cliente.nombre} {cliente.apellido}"),
+        ("Telefono", cliente.n_telefono or "No definido"),
+        ("Correo", cliente.email or "No definido"),
+        ("Fecha factura", fecha_factura),
+        ("Fecha cita", fecha_cita),
+        ("Hora cita", hora_cita),
+        ("Estado", estado),
+        ("Metodo de pago", metodo),
+    ]
+
+    y = 655
+    for etiqueta, valor in datos:
+        _pdf_text(comandos, etiqueta, 56, y, 10, True)
+        _pdf_text(comandos, valor, 180, y, 10)
+        y -= 22
+
+    y -= 12
+    _pdf_text(comandos, "Servicios facturados", 56, y, 14, True)
+    y -= 18
+    comandos.append(f"0.90 0.96 0.96 rg 56 {y - 5} 500 22 re f")
+    comandos.append("0 0 0 rg")
+    _pdf_text(comandos, "Servicio", 68, y, 10, True)
+    _pdf_text(comandos, "Costo", 470, y, 10, True)
+    y -= 26
+
+    for servicio in servicios:
+        if y < 130:
+            _pdf_text(
+                comandos,
+                "Hay mas servicios; revise el sistema para el detalle completo.",
+                68,
+                y,
+                9
+            )
+            y -= 20
+            break
+
+        nombre = servicio.nombre
+        if len(nombre) > 55:
+            nombre = nombre[:52] + "..."
+
+        _pdf_text(comandos, nombre, 68, y, 10)
+        _pdf_text(comandos, f"C$ {servicio.costo}", 470, y, 10)
+        _pdf_line(comandos, 56, y - 8, 556, y - 8)
+        y -= 24
+
+    y -= 10
+    _pdf_line(comandos, 360, y + 18, 556, y + 18)
+    _pdf_text(comandos, "Total", 390, y, 16, True)
+    _pdf_text(comandos, f"C$ {factura.total}", 470, y, 16, True)
+
+    _pdf_text(
+        comandos,
+        "Gracias por preferir Clinica Dr. Scholl.",
+        56,
+        65,
+        9
+    )
+
+    contenido = "\n".join(comandos).encode("cp1252", errors="replace")
+
+    objetos = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        (
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+            b"/Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> "
+            b"/Contents 6 0 R >>"
+        ),
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
+        (
+            f"<< /Length {len(contenido)} >>\nstream\n".encode("ascii")
+            + contenido
+            + b"\nendstream"
+        ),
+    ]
+
+    pdf = bytearray(b"%PDF-1.4\n")
+    offsets = []
+
+    for numero, objeto in enumerate(objetos, start=1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{numero} 0 obj\n".encode("ascii"))
+        pdf.extend(objeto)
+        pdf.extend(b"\nendobj\n")
+
+    inicio_xref = len(pdf)
+    pdf.extend(f"xref\n0 {len(objetos) + 1}\n".encode("ascii"))
+    pdf.extend(b"0000000000 65535 f \n")
+
+    for offset in offsets:
+        pdf.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+
+    pdf.extend(
+        (
+            f"trailer << /Size {len(objetos) + 1} /Root 1 0 R >>\n"
+            f"startxref\n{inicio_xref}\n%%EOF"
+        ).encode("ascii")
+    )
+
+    return bytes(pdf)
+
+
+@login_required
+def descargar_factura_pdf(request, id_factura):
+
+    factura = get_object_or_404(
+        Factura.objects.select_related(
+            'cita',
+            'cita__cliente',
+            'estado_pago',
+            'metodo_pago'
+        ),
+        id_factura=id_factura
+    )
+
+    servicios = list(
+        Servicio.objects.filter(
+            serviciofactura__factura=factura
+        )
+    )
+
+    respuesta = HttpResponse(
+        _construir_factura_pdf(factura, servicios),
+        content_type="application/pdf"
+    )
+    respuesta["Content-Disposition"] = (
+        f'attachment; filename="factura_{factura.id_factura}.pdf"'
+    )
+    return respuesta
 
 
 @login_required

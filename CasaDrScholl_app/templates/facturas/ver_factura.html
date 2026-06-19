@@ -8,10 +8,14 @@ Factura
 
 <div class="container">
 
-    <div class="mb-3">
+    <div class="mb-3 d-flex gap-2">
         <a href="{% url 'detalle_cita' factura.cita.id_cita %}"
            class="btn btn-secondary">
             ← Volver a la cita
+        </a>
+        <a href="{% url 'descargar_factura_pdf' factura.id_factura %}"
+           class="btn btn-primary">
+            Descargar PDF
         </a>
     </div>
 
