@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+{% load l10n %}
+
+{% block title %}Control financiero{% endblock %}
+
+{% block content %}
+<div class="container">
+    <section class="dashboard-hero">
+        <div>
+            <p class="section-kicker">Panel administrativo</p>
+            <h2>Control financiero</h2>
+            <p>Registra los gastos mensuales y compara el total contra los ingresos cobrados.</p>
+        </div>
+        <a href="{% url 'administrativo' %}" class="btn btn-secondary">
+            Volver
+        </a>
+    </section>
+
+    <form method="post" class="table-panel mb-4">
+        {% csrf_token %}
+        <div class="table-panel-header">
+            <div>
+                <p class="section-kicker">Gastos del mes</p>
+                <h3>Registro mensual</h3>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-info" id="consultarMes">
+                    Consultar
+                </button>
+                {% if mes_cerrado %}
+                    <span class="badge bg-success align-self-center">Mes cerrado</span>
+                {% else %}
+                    <button type="submit" name="accion" value="guardar" class="btn btn-primary">
+                        Guardar gastos
+                    </button>
+                    <button type="submit" name="accion" value="cerrar_mes" class="btn btn-success"
+                            onclick="return confirm('Seguro que deseas cerrar este mes? Luego no podras editar sus gastos.');">
+                        Cerrar mes
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="p-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label" for="mes">Mes</label>
+                    <select class="form-select" id="mes" name="mes">
+                        {% for numero, nombre in meses %}
+                            <option value="{{ numero }}" {% if mes == numero %}selected{% endif %}>
+                                {{ nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label" for="anio">Año</label>
+                    <select class="form-select" id="anio" name="anio">
+                        {% for opcion in anios %}
+                            <option value="{{ opcion }}" {% if anio == opcion %}selected{% endif %}>
+                                {{ opcion }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label" for="luz">Luz</label>
+                    <input type="text" inputmode="decimal" class="form-control" id="luz" name="luz" value="{{ gasto.luz|floatformat:'2u' }}" {% if mes_cerrado %}readonly{% endif %}>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" for="agua">Agua</label>
+                    <input type="text" inputmode="decimal" class="form-control" id="agua" name="agua" value="{{ gasto.agua|floatformat:'2u' }}" {% if mes_cerrado %}readonly{% endif %}>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" for="internet">Internet</label>
+                    <input type="text" inputmode="decimal" class="form-control" id="internet" name="internet" value="{{ gasto.internet|floatformat:'2u' }}" {% if mes_cerrado %}readonly{% endif %}>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" for="materiales">Materiales</label>
+                    <input type="text" inputmode="decimal" class="form-control" id="materiales" name="materiales" value="{{ gasto.materiales|floatformat:'2u' }}" {% if mes_cerrado %}readonly{% endif %}>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Salarios calculados</label>
+                    <div class="form-control bg-light">
+                        C$ {{ salarios_operativos|floatformat:"2u" }}
+                    </div>
+                    <small class="text-muted">Segun comisiones de facturas pagadas.</small>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" for="otros">Otros gastos</label>
+                    <input type="text" inputmode="decimal" class="form-control" id="otros" name="otros" value="{{ gasto.otros|floatformat:'2u' }}" {% if mes_cerrado %}readonly{% endif %}>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="row g-3 text-center mb-4">
+        <div class="col-md">
+            <div class="metric-card">
+                <span>Ingresos</span>
+                <strong>C$ {{ ingresos_mes|floatformat:"2u" }}</strong>
+                <small>Facturas pagadas del mes</small>
+            </div>
+        </div>
+
+        <div class="col-md">
+            <div class="metric-card">
+                <span>Gastos</span>
+                <strong>C$ {{ gastos_mes|floatformat:"2u" }}</strong>
+                <small>Incluye salarios calculados</small>
+            </div>
+        </div>
+
+        <div class="col-md">
+            <div class="metric-card">
+                <span>Salarios</span>
+                <strong>C$ {{ salarios_operativos|floatformat:"2u" }}</strong>
+                <small>Comisiones del mes</small>
+            </div>
+        </div>
+
+        <div class="col-md">
+            <div class="metric-card">
+                <span>Balance</span>
+                <strong>C$ {{ balance_mes|floatformat:"2u" }}</strong>
+                <small>Ingresos menos gastos</small>
+            </div>
+        </div>
+
+        <div class="col-md">
+            <div class="metric-card">
+                <span>Pagadas</span>
+                <strong>{{ facturas_pagadas }}</strong>
+                <small>Facturas cobradas</small>
+            </div>
+        </div>
+
+        <div class="col-md">
+            <div class="metric-card">
+                <span>Pendientes</span>
+                <strong>{{ facturas_pendientes }}</strong>
+                <small>Facturas por cobrar</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-panel mb-4">
+        <div class="table-panel-header">
+            <div>
+                <p class="section-kicker">Salarios</p>
+                <h3>Comisiones por operativo</h3>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Operativo</th>
+                        <th>Servicios pagados</th>
+                        <th>Comision total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in comisiones_operativos %}
+                        <tr>
+                            <td>{{ item.operativo }}</td>
+                            <td>{{ item.servicios }}</td>
+                            <td><strong>C$ {{ item.total_comision|floatformat:"2u" }}</strong></td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center py-4">
+                                No hay comisiones calculadas para este mes.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="table-panel">
+        <div class="table-panel-header">
+            <div>
+                <p class="section-kicker">Historial</p>
+                <h3>Resumen mensual</h3>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Mes</th>
+                        <th>Ingresos</th>
+                        <th>Gastos</th>
+                        <th>Balance</th>
+                        <th>Detalle gastos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in historial %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.nombre_mes }} {{ item.anio }}</strong>
+                            </td>
+                            <td>C$ {{ item.ingresos|floatformat:"2u" }}</td>
+                            <td>C$ {{ item.total_gastos|floatformat:"2u" }}</td>
+                            <td>
+                                {% if item.balance >= 0 %}
+                                    <span class="badge bg-success">C$ {{ item.balance|floatformat:"2u" }}</span>
+                                {% else %}
+                                    <span class="badge bg-danger">C$ {{ item.balance|floatformat:"2u" }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="text-muted small">
+                                    Luz C$ {{ item.luz|floatformat:"2u" }} |
+                                    Agua C$ {{ item.agua|floatformat:"2u" }} |
+                                    Internet C$ {{ item.internet|floatformat:"2u" }}
+                                </div>
+                                <div class="text-muted small">
+                                    Materiales C$ {{ item.materiales|floatformat:"2u" }} |
+                                    Salarios C$ {{ item.salarios_operativos|floatformat:"2u" }} |
+                                    Otros C$ {{ item.otros|floatformat:"2u" }}
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4">
+                                Todavia no hay gastos mensuales registrados.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const consultarMes = document.getElementById('consultarMes');
+
+    if (consultarMes) {
+        consultarMes.addEventListener('click', () => {
+            const mes = document.getElementById('mes').value;
+            const anio = document.getElementById('anio').value;
+            window.location.href = `{% url 'finanzas_admin' %}?mes=${mes}&anio=${anio}`;
+        });
+    }
+</script>
+{% endblock %}

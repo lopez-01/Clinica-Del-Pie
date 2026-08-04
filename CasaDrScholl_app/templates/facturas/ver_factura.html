@@ -57,10 +57,17 @@ Factura
 
         <div class="card-body">
 
+            {% if factura.cita.estado.nombre_estado == "Cancelada" %}
+                <div class="alert alert-warning">
+                    Esta factura pertenece a una cita cancelada. No se puede procesar pago para esta factura.
+                </div>
+            {% endif %}
+
             {% if factura.estado_pago.nombre == "Pendiente" %}
 
                 <div class="mb-3 d-flex gap-2">
 
+                    {% if factura.cita.estado.nombre_estado != "Cancelada" %}
                     <a href="{% url 'pagar_factura' factura.id_factura %}"
                     class="btn btn-success">
 
@@ -75,6 +82,19 @@ Factura
 
                     </a>
 
+                </div>
+
+            {% elif factura.estado_pago.nombre == "Pagada" %}
+
+                <div class="mb-3">
+                    {% endif %}
+
+                    <a href="{% url 'anular_factura' factura.id_factura %}"
+                    class="btn btn-danger">
+
+                        Anular factura
+
+                    </a>
                 </div>
 
             {% endif %}

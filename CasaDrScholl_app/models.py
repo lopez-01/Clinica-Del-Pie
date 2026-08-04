@@ -52,6 +52,12 @@ class Servicio(models.Model):
     duracion = models.IntegerField(blank=True, null=True)
     descripcion = models.CharField(max_length=200, blank=True, null=True)
     costo = models.DecimalField(max_digits=10, decimal_places=2, db_column='Costo')
+    comision_operativo = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        db_column='Comision_Operativo'
+    )
 
     class Meta:
         db_table = 'Servicio'
@@ -284,6 +290,60 @@ class PagoDeServicios(models.Model):
 
     def __str__(self):
         return f"Pago Servicio {self.id_pago}"
+
+
+# -------------------------------
+#   TABLA: GASTO MENSUAL
+# -------------------------------
+class GastoMensual(models.Model):
+    id_gasto = models.AutoField(primary_key=True, db_column='ID_Gasto')
+    mes = models.IntegerField(db_column='Mes')
+    anio = models.IntegerField(db_column='Anio')
+    luz = models.DecimalField(max_digits=10, decimal_places=2, default=0, db_column='Luz')
+    agua = models.DecimalField(max_digits=10, decimal_places=2, default=0, db_column='Agua')
+    internet = models.DecimalField(max_digits=10, decimal_places=2, default=0, db_column='Internet')
+    materiales = models.DecimalField(max_digits=10, decimal_places=2, default=0, db_column='Materiales')
+    salarios = models.DecimalField(max_digits=10, decimal_places=2, default=0, db_column='Salarios')
+    otros = models.DecimalField(max_digits=10, decimal_places=2, default=0, db_column='Otros')
+    fecha_registro = models.DateTimeField(db_column='Fecha_Registro', blank=True, null=True)
+    cerrado = models.BooleanField(default=False, db_column='Cerrado')
+    administrativo = models.ForeignKey(
+        Administrativo,
+        on_delete=models.SET_NULL,
+        db_column='ID_Administrativo',
+        to_field='id_administrativo',
+        null=True,
+        blank=True
+    )
+
+    class Meta:
+        db_table = 'GastoMensual'
+        managed = False
+
+    def __str__(self):
+        return f"Gastos {self.mes}/{self.anio}"
+
+
+# -------------------------------
+#   TABLA: HISTORIAL DE ACCIONES
+# -------------------------------
+class HistorialAccion(models.Model):
+    id_accion = models.AutoField(primary_key=True, db_column='ID_Accion')
+    usuario = models.CharField(max_length=150, db_column='Usuario')
+    accion = models.CharField(max_length=100, db_column='Accion')
+    detalle = models.CharField(max_length=500, blank=True, null=True, db_column='Detalle')
+    fecha = models.DateTimeField(db_column='Fecha')
+    id_cita = models.IntegerField(blank=True, null=True, db_column='ID_Cita')
+    id_factura = models.IntegerField(blank=True, null=True, db_column='ID_Factura')
+    mes = models.IntegerField(blank=True, null=True, db_column='Mes')
+    anio = models.IntegerField(blank=True, null=True, db_column='Anio')
+
+    class Meta:
+        db_table = 'HistorialAccion'
+        managed = False
+
+    def __str__(self):
+        return f"{self.accion} - {self.usuario}"
 
 
 # -------------------------------

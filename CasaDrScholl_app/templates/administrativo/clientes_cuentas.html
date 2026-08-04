@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+{% load l10n %}
+
+{% block title %}Historial Administrativo{% endblock %}
+
+{% block content %}
+<div class="container">
+    <section class="dashboard-hero">
+        <div>
+            <p class="section-kicker">Panel administrativo</p>
+            <h2>Historial Administrativo</h2>
+            <p>Consulta clientes por operativo, citas registradas, facturas y saldos pendientes.</p>
+        </div>
+        <a href="{% url 'administrativo' %}" class="btn btn-secondary">
+            Volver
+        </a>
+    </section>
+
+    <form method="get" class="table-panel mb-4">
+        <div class="table-panel-header">
+            <div>
+                <p class="section-kicker">Filtros</p>
+                <h3>Buscar informacion</h3>
+            </div>
+            <a href="{% url 'clientes_cuentas_admin' %}" class="btn btn-info">
+                Limpiar
+            </a>
+        </div>
+
+        <div class="p-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-4">
+                    <label class="form-label" for="buscar">Cliente u operativo</label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="buscar"
+                        name="buscar"
+                        value="{{ busqueda }}"
+                        placeholder="Nombre, telefono, correo u operativo"
+                    >
+                </div>
+
+                <div class="col-lg-2">
+                    <label class="form-label" for="operativo">Operativo</label>
+                    <select class="form-select" id="operativo" name="operativo">
+                        <option value="">Todos</option>
+                        {% for operativo in operativos %}
+                            <option value="{{ operativo.id_operativo }}"
+                                {% if operativo_id == operativo.id_operativo|stringformat:"s" %}selected{% endif %}>
+                                {{ operativo.personal.nombre }} {{ operativo.personal.apellido }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-lg-2">
+                    <label class="form-label" for="estado_factura">Factura</label>
+                    <select class="form-select" id="estado_factura" name="estado_factura">
+                        <option value="">Todas</option>
+                        <option value="Pendiente" {% if estado_factura == "Pendiente" %}selected{% endif %}>
+                            Pendientes
+                        </option>
+                        <option value="Pagada" {% if estado_factura == "Pagada" %}selected{% endif %}>
+                            Pagadas
+                        </option>
+                        <option value="Anulada" {% if estado_factura == "Anulada" %}selected{% endif %}>
+                            Anuladas
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-lg-2">
+                    <label class="form-label" for="orden_fecha">Fecha</label>
+                    <select class="form-select" id="orden_fecha" name="orden_fecha">
+                        <option value="recientes" {% if orden_fecha != "antiguas" %}selected{% endif %}>
+                            Recientes primero
+                        </option>
+                        <option value="antiguas" {% if orden_fecha == "antiguas" %}selected{% endif %}>
+                            Antiguas primero
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-lg-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        Buscar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="row g-3 text-center mb-4">
+        <div class="col-md">
+            <div class="metric-card">
+                <span>Clientes</span>
+                <strong>{{ total_clientes }}</strong>
+                <small>Con citas registradas</small>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="metric-card">
+                <span>Citas</span>
+                <strong>{{ total_citas }}</strong>
+                <small>Segun filtros</small>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="metric-card">
+                <span>Facturas</span>
+                <strong>{{ total_facturas }}</strong>
+                <small>Generadas</small>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="metric-card">
+                <span>Pagado</span>
+                <strong>C$ {{ total_pagado|floatformat:"2u" }}</strong>
+                <small>Ingresos cobrados</small>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="metric-card">
+                <span>Pendiente</span>
+                <strong>C$ {{ total_pendiente|floatformat:"2u" }}</strong>
+                <small>Por cobrar</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-panel">
+        <div class="table-panel-header">
+            <div>
+                <p class="section-kicker">Historial</p>
+                <h3>Resumen administrativo</h3>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Contacto</th>
+                        <th>Operativo</th>
+                        <th>Citas</th>
+                        <th>Facturas</th>
+                        <th>Montos</th>
+                        <th>Ultima cita</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in clientes_resumen %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.cliente.nombre }} {{ item.cliente.apellido }}</strong>
+                                <div class="text-muted small">{{ item.cliente.sexo|default:"Sin sexo" }}</div>
+                            </td>
+                            <td>
+                                <div>{{ item.cliente.n_telefono|default:"Sin telefono" }}</div>
+                                <div class="text-muted small">{{ item.cliente.email|default:"Sin correo" }}</div>
+                            </td>
+                            <td>
+                                {% if item.operativo %}
+                                    {{ item.operativo.personal.nombre }} {{ item.operativo.personal.apellido }}
+                                {% else %}
+                                    Sin operativo
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ item.total_citas }}</strong>
+                                <div class="mt-1">
+                                    {% if item.ultima_cita.estado.nombre_estado == "Atendida" %}
+                                        <span class="badge bg-success">Atendida</span>
+                                    {% elif item.ultima_cita.estado.nombre_estado == "Cancelada" %}
+                                        <span class="badge bg-danger">Cancelada</span>
+                                    {% elif item.ultima_cita.estado.nombre_estado == "Pendiente" %}
+                                        <span class="badge bg-warning text-dark">Pendiente</span>
+                                    {% else %}
+                                        <span class="badge bg-primary">Programada</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <strong>{{ item.total_facturas }}</strong>
+                                <div class="mt-1">
+                                    {% if item.ultima_factura %}
+                                        {% if item.ultima_factura.estado_pago.nombre == "Pagada" %}
+                                            <span class="badge bg-success">Pagada</span>
+                                        {% elif item.ultima_factura.estado_pago.nombre == "Pendiente" %}
+                                            <span class="badge bg-warning text-dark">Pendiente</span>
+                                        {% elif item.ultima_factura.estado_pago.nombre == "Anulada" %}
+                                            <span class="badge bg-danger">Anulada</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Sin estado</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary">Sin factura</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div><strong>C$ {{ item.total_facturado|floatformat:"2u" }}</strong></div>
+                                <div class="text-muted small">Pagado: C$ {{ item.total_pagado|floatformat:"2u" }}</div>
+                                <div class="text-muted small">Pendiente: C$ {{ item.total_pendiente|floatformat:"2u" }}</div>
+                            </td>
+                            <td>
+                                {{ item.ultima_cita.fechahora|date:"d/m/Y" }}
+                                <div class="text-muted small">{{ item.ultima_cita.fechahora|time:"h:i A" }}</div>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <a href="{% url 'detalle_cita' item.ultima_cita.id_cita %}" class="btn btn-sm btn-primary">
+                                        Ver cita
+                                    </a>
+                                    {% if item.ultima_factura %}
+                                        <a href="{% url 'ver_factura' item.ultima_factura.id_factura %}" class="btn btn-sm btn-success">
+                                            Ver factura
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                No hay clientes con citas para los filtros seleccionados.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="table-panel mt-4">
+        <div class="table-panel-header">
+            <div>
+                <p class="section-kicker">Auditoria</p>
+                <h3>Acciones recientes</h3>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Usuario</th>
+                        <th>Accion</th>
+                        <th>Detalle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for accion in acciones_recientes %}
+                        <tr>
+                            <td>
+                                {{ accion.fecha|date:"d/m/Y" }}
+                                <div class="text-muted small">{{ accion.fecha|time:"h:i A" }}</div>
+                            </td>
+                            <td>{{ accion.usuario }}</td>
+                            <td><span class="badge bg-primary">{{ accion.accion }}</span></td>
+                            <td>{{ accion.detalle|default:"Sin detalle" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4">
+                                Todavia no hay acciones registradas.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

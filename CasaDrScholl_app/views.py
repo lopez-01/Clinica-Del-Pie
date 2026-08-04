@@ -1,7 +1,8 @@
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.db.models import Q
+from django.db import connection
+from django.db.models import Q, Sum
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
@@ -20,17 +21,429 @@ from .models import (
     ServicioFactura,
     EstadoPago,
     MetodoPago,
+    GastoMensual,
+    HistorialAccion,
 )
 from .forms import ClienteForm, ServicioSelectForm, OperativoSelectForm, FechaHoraForm
 from django.urls import reverse
 from datetime import date, datetime, timedelta, time
+from decimal import Decimal, InvalidOperation
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET, require_POST
 import json
-from django.db.models import Q
+import re
 
 MAX_SOLICITUDES_WEB_POR_DIA = 5
+HORA_APERTURA_CLINICA = time(8, 0)
+HORA_CIERRE_CLINICA = time(17, 0)
+DIAS_NO_LABORALES = {0}
+PATRON_NOMBRE = re.compile(
+    r"^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?:[ '-][A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$"
+)
+
+
+def obtener_rango_agenda():
+    fecha_minima = timezone.localdate()
+    fecha_maxima = fecha_minima + timedelta(days=365)
+    return fecha_minima, fecha_maxima
+
+
+def fecha_en_rango_agenda(fecha):
+    fecha_minima, fecha_maxima = obtener_rango_agenda()
+    return fecha_minima <= fecha <= fecha_maxima
+
+
+def fecha_laboral(fecha):
+    return fecha.weekday() not in DIAS_NO_LABORALES
+
+
+def cita_en_horario_laboral(inicio, duracion):
+    inicio_local = timezone.localtime(inicio)
+    fin_local = inicio_local + timedelta(minutes=duracion)
+
+    if inicio_local.date() != fin_local.date():
+        return False
+
+    return (
+        inicio_local.time() >= HORA_APERTURA_CLINICA
+        and fin_local.time() <= HORA_CIERRE_CLINICA
+    )
+
+
+def normalizar_nombre_persona(valor):
+    return " ".join(valor.strip().split()).title()
+
+
+def nombre_persona_valido(valor):
+    texto = normalizar_nombre_persona(valor)
+    letras = re.sub(r"[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]", "", texto).lower()
+
+    if len(letras) < 2:
+        return False
+
+    if len(set(letras)) == 1:
+        return False
+
+    return bool(PATRON_NOMBRE.match(texto))
+
+
+def actualizar_citas_vencidas(operativo=None):
+    try:
+        estado_atendida = Estado.objects.get(nombre_estado='Atendida')
+    except Estado.DoesNotExist:
+        return 0
+
+    citas = Cita.objects.filter(
+        fechahora__lt=timezone.now(),
+        estado__nombre_estado='Programada'
+    )
+
+    if operativo:
+        citas = citas.filter(operativo=operativo)
+
+    return citas.update(estado=estado_atendida)
+
+
+MESES = [
+    (1, "Enero"),
+    (2, "Febrero"),
+    (3, "Marzo"),
+    (4, "Abril"),
+    (5, "Mayo"),
+    (6, "Junio"),
+    (7, "Julio"),
+    (8, "Agosto"),
+    (9, "Septiembre"),
+    (10, "Octubre"),
+    (11, "Noviembre"),
+    (12, "Diciembre"),
+]
+
+
+def asegurar_tabla_gasto_mensual():
+    with connection.cursor() as cursor:
+        cursor.execute("""
+IF OBJECT_ID(N'[dbo].[GastoMensual]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[GastoMensual] (
+        [ID_Gasto] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        [Mes] INT NOT NULL,
+        [Anio] INT NOT NULL,
+        [Luz] DECIMAL(10,2) NOT NULL DEFAULT 0,
+        [Agua] DECIMAL(10,2) NOT NULL DEFAULT 0,
+        [Internet] DECIMAL(10,2) NOT NULL DEFAULT 0,
+        [Materiales] DECIMAL(10,2) NOT NULL DEFAULT 0,
+        [Salarios] DECIMAL(10,2) NOT NULL DEFAULT 0,
+        [Otros] DECIMAL(10,2) NOT NULL DEFAULT 0,
+        [Fecha_Registro] DATETIME2 NULL,
+        [Cerrado] BIT NOT NULL DEFAULT 0,
+        [ID_Administrativo] INT NULL,
+        CONSTRAINT [UQ_GastoMensual_Mes_Anio] UNIQUE ([Mes], [Anio])
+    )
+END
+""")
+        cursor.execute("""
+IF COL_LENGTH('dbo.GastoMensual', 'Cerrado') IS NULL
+BEGIN
+    ALTER TABLE [dbo].[GastoMensual]
+    ADD [Cerrado] BIT NOT NULL DEFAULT 0
+END
+""")
+
+
+def asegurar_tabla_historial_accion():
+    with connection.cursor() as cursor:
+        cursor.execute("""
+IF OBJECT_ID(N'[dbo].[HistorialAccion]', N'U') IS NULL
+BEGIN
+    CREATE TABLE [dbo].[HistorialAccion] (
+        [ID_Accion] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        [Usuario] NVARCHAR(150) NOT NULL,
+        [Accion] NVARCHAR(100) NOT NULL,
+        [Detalle] NVARCHAR(500) NULL,
+        [Fecha] DATETIME2 NOT NULL,
+        [ID_Cita] INT NULL,
+        [ID_Factura] INT NULL,
+        [Mes] INT NULL,
+        [Anio] INT NULL
+    )
+END
+""")
+
+
+def asegurar_tablas_administrativas():
+    asegurar_tabla_gasto_mensual()
+    asegurar_tabla_historial_accion()
+
+
+def rango_mes(anio, mes):
+    inicio = timezone.make_aware(datetime(anio, mes, 1))
+
+    if mes == 12:
+        fin = timezone.make_aware(datetime(anio + 1, 1, 1))
+    else:
+        fin = timezone.make_aware(datetime(anio, mes + 1, 1))
+
+    return inicio, fin
+
+
+def ingresos_facturados_pagados(anio, mes):
+    inicio, fin = rango_mes(anio, mes)
+    return Factura.objects.filter(
+        fecha_factura__gte=inicio,
+        fecha_factura__lt=fin,
+        estado_pago__nombre='Pagada'
+    ).aggregate(
+        total=Sum('total')
+    )['total'] or Decimal('0.00')
+
+
+def total_gasto_mensual(gasto, salarios_operativos=Decimal('0.00')):
+    return sum(
+        (
+            gasto.luz or Decimal('0.00'),
+            gasto.agua or Decimal('0.00'),
+            gasto.internet or Decimal('0.00'),
+            gasto.materiales or Decimal('0.00'),
+            gasto.otros or Decimal('0.00'),
+            salarios_operativos or Decimal('0.00'),
+        ),
+        Decimal('0.00')
+    )
+
+
+def comisiones_operativos_mes(anio, mes):
+    inicio, fin = rango_mes(anio, mes)
+    comisiones = {}
+
+    servicios_facturados = ServicioFactura.objects.filter(
+        factura__fecha_factura__gte=inicio,
+        factura__fecha_factura__lt=fin,
+        factura__estado_pago__nombre='Pagada'
+    ).select_related(
+        'servicio',
+        'factura',
+        'factura__cita',
+        'factura__cita__operativo',
+        'factura__cita__operativo__personal'
+    )
+
+    for servicio_factura in servicios_facturados:
+        factura = servicio_factura.factura
+        cita = factura.cita if factura else None
+        operativo = cita.operativo if cita else None
+        comision = servicio_factura.servicio.comision_operativo or Decimal('0.00')
+
+        if operativo and operativo.personal:
+            key = operativo.id_operativo
+            nombre_operativo = f"{operativo.personal.nombre} {operativo.personal.apellido}"
+        else:
+            key = 0
+            nombre_operativo = "Sin operativo"
+
+        item = comisiones.setdefault(key, {
+            'operativo': nombre_operativo,
+            'servicios': 0,
+            'total_comision': Decimal('0.00'),
+        })
+
+        item['servicios'] += 1
+        item['total_comision'] += comision
+
+    detalle = sorted(
+        comisiones.values(),
+        key=lambda item: item['total_comision'],
+        reverse=True
+    )
+    total = sum(
+        (item['total_comision'] for item in detalle),
+        Decimal('0.00')
+    )
+
+    return detalle, total
+
+
+def decimal_post(request, campo):
+    valor = request.POST.get(campo, '0').strip().replace(',', '.')
+
+    try:
+        monto = Decimal(valor or '0')
+    except InvalidOperation as exc:
+        raise ValueError("Monto invalido.") from exc
+
+    if monto < 0:
+        raise ValueError("Los gastos no pueden ser negativos.")
+
+    return monto
+
+
+def limpiar_motivo(valor):
+    motivo = " ".join((valor or "").strip().split())
+
+    if len(motivo) < 5:
+        raise ValueError("Debe escribir un motivo de al menos 5 caracteres.")
+
+    if len(motivo) > 250:
+        raise ValueError("El motivo no puede superar 250 caracteres.")
+
+    return motivo
+
+
+def nombre_usuario_accion(request):
+    if not request or not request.user.is_authenticated:
+        return "Sistema"
+
+    try:
+        personal = Personal.objects.get(user=request.user)
+        return f"{personal.nombre} {personal.apellido}".strip()
+    except Personal.DoesNotExist:
+        return request.user.get_username()
+
+
+def registrar_accion(
+    request,
+    accion,
+    detalle="",
+    cita=None,
+    factura=None,
+    mes=None,
+    anio=None
+):
+    asegurar_tabla_historial_accion()
+
+    HistorialAccion.objects.create(
+        usuario=nombre_usuario_accion(request),
+        accion=accion,
+        detalle=detalle[:500] if detalle else "",
+        fecha=timezone.now(),
+        id_cita=cita.id_cita if cita else None,
+        id_factura=factura.id_factura if factura else None,
+        mes=mes,
+        anio=anio
+    )
+
+
+def registrar_cita_creada(request, cita):
+    if not cita:
+        return
+
+    cliente = f"{cita.cliente.nombre} {cita.cliente.apellido}".strip()
+    operativo = (
+        f"{cita.operativo.personal.nombre} {cita.operativo.personal.apellido}".strip()
+        if cita.operativo and cita.operativo.personal
+        else "Sin operativo"
+    )
+    fechahora = timezone.localtime(cita.fechahora)
+
+    registrar_accion(
+        request,
+        "Crear cita",
+        (
+            f"Cita para {cliente} asignada a {operativo} "
+            f"el {fechahora.strftime('%d/%m/%Y')} a las {fechahora.strftime('%I:%M %p')}."
+        ),
+        cita=cita
+    )
+
+
+def notificar_citas_nuevas_operativo(request, operativo, desde=None):
+    if not operativo:
+        return
+
+    asegurar_tabla_historial_accion()
+
+    ahora = timezone.now()
+    fecha_inicio = desde or (ahora - timedelta(days=7))
+    nombre_operativo = f"{operativo.personal.nombre} {operativo.personal.apellido}".strip()
+
+    citas = Cita.objects.filter(
+        operativo=operativo,
+        fechahora__gte=ahora
+    ).select_related(
+        'cliente',
+        'operativo',
+        'operativo__personal'
+    )
+    citas_por_id = {cita.id_cita: cita for cita in citas}
+
+    if not citas_por_id:
+        return
+
+    acciones = HistorialAccion.objects.filter(
+        accion="Crear cita",
+        id_cita__in=citas_por_id.keys(),
+        fecha__gt=fecha_inicio
+    ).exclude(
+        usuario__iexact=nombre_operativo
+    ).order_by('-fecha')[:5]
+
+    total = 0
+    for accion in acciones:
+        cita = citas_por_id.get(accion.id_cita)
+        if not cita:
+            continue
+
+        total += 1
+        cliente = f"{cita.cliente.nombre} {cita.cliente.apellido}".strip()
+        fechahora = timezone.localtime(cita.fechahora)
+
+        messages.info(
+            request,
+            (
+                f"{accion.usuario} le hizo una cita a {cliente} "
+                f"para el {fechahora.strftime('%d/%m/%Y')} "
+                f"a las {fechahora.strftime('%I:%M %p')}."
+            )
+        )
+
+    if total == 5:
+        messages.info(
+            request,
+            "Tienes mas citas nuevas asignadas. Revisa tu agenda para verlas todas."
+        )
+
+
+def cita_esta_cancelada(cita):
+    return (
+        cita
+        and cita.estado
+        and cita.estado.nombre_estado == "Cancelada"
+    )
+
+
+def obtener_operativo_usuario(request):
+    if not request.user.is_authenticated:
+        return None
+
+    try:
+        personal = Personal.objects.get(user=request.user)
+        return Operativo.objects.select_related('personal').get(personal=personal)
+    except (Personal.DoesNotExist, Operativo.DoesNotExist):
+        return None
+
+
+def obtener_usuarios_login():
+    usuarios = []
+    personales = Personal.objects.select_related('user').filter(
+        user__isnull=False
+    ).order_by('nombre', 'apellido')
+
+    for personal in personales:
+        if Operativo.objects.filter(personal=personal).exists():
+            rol = "Operativo"
+        elif Administrativo.objects.filter(personal=personal).exists():
+            rol = "Administrativo"
+        else:
+            rol = "Usuario"
+
+        usuarios.append({
+            'username': personal.user.username,
+            'nombre': f"{personal.nombre} {personal.apellido}",
+            'rol': rol,
+        })
+
+    return usuarios
 
 
 def login_view(request):
@@ -46,14 +459,17 @@ def login_view(request):
         return redirect('home')
     
     error = None
+    selected_username = ""
 
     if request.method == 'POST':
         username = request.POST.get('username')
+        selected_username = username
         password = request.POST.get('password')
 
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
+            ultimo_login = user.last_login
             login(request, user)
 
             try:
@@ -62,6 +478,12 @@ def login_view(request):
                 if Administrativo.objects.filter(personal=personal).exists():
                     return redirect('administrativo')
                 elif Operativo.objects.filter(personal=personal).exists():
+                    operativo = Operativo.objects.get(personal=personal)
+                    notificar_citas_nuevas_operativo(
+                        request,
+                        operativo,
+                        desde=ultimo_login
+                    )
                     return redirect('operativo')
                 else:
                     return redirect('home')
@@ -71,7 +493,10 @@ def login_view(request):
         else:
             error = "Usuario o contraseña incorrectos"
 
-    return render(request, 'login.html', {'error': error})
+    return render(request, 'login.html', {
+        'error': error,
+        'selected_username': selected_username
+    })
 
 
 def logout_view(request):
@@ -97,9 +522,428 @@ def home(request):
 def landing(request):
     return render(request, 'web/index.html')
 
+
+def csrf_failure(request, reason=""):
+    messages.error(
+        request,
+        "La pagina del formulario estaba desactualizada. Intenta enviar la solicitud nuevamente."
+    )
+
+    if request.path == reverse('crear_solicitud_web'):
+        return redirect(f"{reverse('landing')}#contacts")
+
+    return redirect('login')
+
 @login_required
 def administrativo_view(request):
-    return render(request, 'administrativo.html')
+    asegurar_tablas_administrativas()
+    actualizar_citas_vencidas()
+
+    hoy = timezone.localdate()
+    mes = hoy.month
+    anio = hoy.year
+    ingresos_mes = ingresos_facturados_pagados(anio, mes)
+    gasto_mes = GastoMensual.objects.filter(mes=mes, anio=anio).first()
+    _, salarios_operativos = comisiones_operativos_mes(anio, mes)
+
+    if gasto_mes:
+        gastos_mes = total_gasto_mensual(gasto_mes, salarios_operativos)
+        mes_financiero_registrado = True
+    else:
+        gastos_mes = salarios_operativos
+        mes_financiero_registrado = False
+
+    balance_mes = ingresos_mes - gastos_mes
+    facturas_pendientes = Factura.objects.filter(
+        estado_pago__nombre='Pendiente'
+    ).count()
+    fecha_alerta = timezone.now() - timedelta(days=7)
+    citas_canceladas_recientes = HistorialAccion.objects.filter(
+        accion='Cancelar cita',
+        fecha__gte=fecha_alerta
+    ).count()
+
+    alertas_admin = []
+
+    if facturas_pendientes:
+        alertas_admin.append({
+            'tipo': 'warning',
+            'titulo': 'Facturas pendientes',
+            'mensaje': f'Hay {facturas_pendientes} facturas pendientes de pago.'
+        })
+
+    if citas_canceladas_recientes:
+        alertas_admin.append({
+            'tipo': 'danger',
+            'titulo': 'Citas canceladas',
+            'mensaje': f'Se cancelaron {citas_canceladas_recientes} citas en los ultimos 7 dias.'
+        })
+
+    if not mes_financiero_registrado:
+        alertas_admin.append({
+            'tipo': 'info',
+            'titulo': 'Finanzas del mes',
+            'mensaje': 'Aun no se han registrado gastos para el mes actual.'
+        })
+
+    return render(request, 'administrativo.html', {
+        'total_empleados': Personal.objects.count(),
+        'total_servicios': Servicio.objects.count(),
+        'ingresos_mes': ingresos_mes,
+        'gastos_mes': gastos_mes,
+        'salarios_operativos': salarios_operativos,
+        'balance_mes': balance_mes,
+        'alertas_admin': alertas_admin,
+    })
+
+
+@login_required
+def finanzas_admin(request):
+    try:
+        personal = Personal.objects.get(user=request.user)
+        administrativo = Administrativo.objects.get(personal=personal)
+    except (Personal.DoesNotExist, Administrativo.DoesNotExist):
+        return redirect('home')
+
+    asegurar_tablas_administrativas()
+    actualizar_citas_vencidas()
+
+    hoy = timezone.localdate()
+    anios = list(range(hoy.year - 3, hoy.year + 2))
+
+    try:
+        mes = int(request.POST.get('mes') or request.GET.get('mes') or hoy.month)
+        anio = int(request.POST.get('anio') or request.GET.get('anio') or hoy.year)
+    except (TypeError, ValueError):
+        mes = hoy.month
+        anio = hoy.year
+
+    if mes < 1 or mes > 12:
+        mes = hoy.month
+
+    if anio < 2000 or anio > hoy.year + 5:
+        anio = hoy.year
+
+    comisiones_operativos, salarios_operativos = comisiones_operativos_mes(anio, mes)
+
+    gasto = GastoMensual.objects.filter(
+        mes=mes,
+        anio=anio
+    ).first()
+
+    if request.method == 'POST':
+        accion_formulario = request.POST.get('accion', 'guardar')
+
+        if accion_formulario == 'cerrar_mes':
+            if not gasto:
+                gasto = GastoMensual.objects.create(
+                    mes=mes,
+                    anio=anio,
+                    luz=Decimal('0.00'),
+                    agua=Decimal('0.00'),
+                    internet=Decimal('0.00'),
+                    materiales=Decimal('0.00'),
+                    salarios=salarios_operativos,
+                    otros=Decimal('0.00'),
+                    fecha_registro=timezone.now(),
+                    administrativo=administrativo,
+                    cerrado=True
+                )
+            else:
+                gasto.salarios = salarios_operativos
+                gasto.fecha_registro = timezone.now()
+                gasto.administrativo = administrativo
+                gasto.cerrado = True
+                gasto.save()
+
+            registrar_accion(
+                request,
+                "Cerrar mes financiero",
+                f"Mes {mes}/{anio} cerrado.",
+                mes=mes,
+                anio=anio
+            )
+            messages.success(request, "Mes financiero cerrado correctamente.")
+            return redirect(f"{reverse('finanzas_admin')}?mes={mes}&anio={anio}")
+
+        if gasto and gasto.cerrado:
+            messages.error(request, "Este mes ya esta cerrado y no se puede editar.")
+            return redirect(f"{reverse('finanzas_admin')}?mes={mes}&anio={anio}")
+
+        try:
+            datos_gasto = {
+                'luz': decimal_post(request, 'luz'),
+                'agua': decimal_post(request, 'agua'),
+                'internet': decimal_post(request, 'internet'),
+                'materiales': decimal_post(request, 'materiales'),
+                'salarios': salarios_operativos,
+                'otros': decimal_post(request, 'otros'),
+                'fecha_registro': timezone.now(),
+                'administrativo': administrativo,
+                'cerrado': False,
+            }
+        except ValueError as exc:
+            messages.error(request, str(exc))
+        else:
+            GastoMensual.objects.update_or_create(
+                mes=mes,
+                anio=anio,
+                defaults=datos_gasto
+            )
+            registrar_accion(
+                request,
+                "Modificar gastos",
+                f"Gastos registrados para {mes}/{anio}.",
+                mes=mes,
+                anio=anio
+            )
+            messages.success(request, "Gastos mensuales guardados correctamente.")
+            return redirect(f"{reverse('finanzas_admin')}?mes={mes}&anio={anio}")
+
+    if not gasto:
+        gasto = GastoMensual(
+            mes=mes,
+            anio=anio,
+            luz=Decimal('0.00'),
+            agua=Decimal('0.00'),
+            internet=Decimal('0.00'),
+            materiales=Decimal('0.00'),
+            salarios=salarios_operativos,
+            otros=Decimal('0.00'),
+            cerrado=False,
+        )
+
+    inicio_mes, fin_mes = rango_mes(anio, mes)
+    ingresos_mes = ingresos_facturados_pagados(anio, mes)
+    gastos_mes = total_gasto_mensual(gasto, salarios_operativos)
+    balance_mes = ingresos_mes - gastos_mes
+
+    facturas_pagadas = Factura.objects.filter(
+        fecha_factura__gte=inicio_mes,
+        fecha_factura__lt=fin_mes,
+        estado_pago__nombre='Pagada'
+    ).count()
+    facturas_pendientes = Factura.objects.filter(
+        fecha_factura__gte=inicio_mes,
+        fecha_factura__lt=fin_mes,
+        estado_pago__nombre='Pendiente'
+    ).count()
+
+    historial = list(
+        GastoMensual.objects.all().order_by('-anio', '-mes')[:12]
+    )
+
+    nombres_meses = dict(MESES)
+    for item in historial:
+        item.nombre_mes = nombres_meses.get(item.mes, item.mes)
+        item.ingresos = ingresos_facturados_pagados(item.anio, item.mes)
+        item.comisiones_operativos, item.salarios_operativos = comisiones_operativos_mes(
+            item.anio,
+            item.mes
+        )
+        item.total_gastos = total_gasto_mensual(item, item.salarios_operativos)
+        item.balance = item.ingresos - item.total_gastos
+
+    return render(
+        request,
+        'administrativo/finanzas.html',
+        {
+            'gasto': gasto,
+            'mes': mes,
+            'anio': anio,
+            'meses': MESES,
+            'anios': anios,
+            'ingresos_mes': ingresos_mes,
+            'gastos_mes': gastos_mes,
+            'balance_mes': balance_mes,
+            'salarios_operativos': salarios_operativos,
+            'comisiones_operativos': comisiones_operativos,
+            'facturas_pagadas': facturas_pagadas,
+            'facturas_pendientes': facturas_pendientes,
+            'historial': historial,
+            'mes_cerrado': gasto.cerrado,
+        }
+    )
+
+
+@login_required
+def clientes_cuentas_admin(request):
+    try:
+        personal = Personal.objects.get(user=request.user)
+        Administrativo.objects.get(personal=personal)
+    except (Personal.DoesNotExist, Administrativo.DoesNotExist):
+        return redirect('home')
+
+    asegurar_tablas_administrativas()
+    actualizar_citas_vencidas()
+
+    busqueda = request.GET.get('buscar', '').strip()
+    operativo_id = request.GET.get('operativo', '').strip()
+    estado_factura = request.GET.get('estado_factura', '').strip()
+    orden_fecha = request.GET.get('orden_fecha', 'recientes').strip()
+
+    citas = Cita.objects.select_related(
+        'cliente',
+        'operativo',
+        'operativo__personal',
+        'estado'
+    ).order_by('-fechahora')
+
+    if operativo_id:
+        citas = citas.filter(operativo_id=operativo_id)
+
+    if busqueda:
+        citas = citas.filter(
+            Q(cliente__nombre__icontains=busqueda) |
+            Q(cliente__apellido__icontains=busqueda) |
+            Q(cliente__n_telefono__icontains=busqueda) |
+            Q(cliente__email__icontains=busqueda) |
+            Q(operativo__personal__nombre__icontains=busqueda) |
+            Q(operativo__personal__apellido__icontains=busqueda)
+        )
+
+    resumen = {}
+    citas_ids = []
+
+    for cita in citas:
+        if not cita.cliente:
+            continue
+
+        citas_ids.append(cita.id_cita)
+        operativo = cita.operativo
+        operativo_key = operativo.id_operativo if operativo else 0
+        key = (operativo_key, cita.cliente.id_cliente)
+
+        item = resumen.setdefault(key, {
+            'cliente': cita.cliente,
+            'operativo': operativo,
+            'total_citas': 0,
+            'programadas': 0,
+            'atendidas': 0,
+            'canceladas': 0,
+            'total_facturas': 0,
+            'facturas_pagadas': 0,
+            'facturas_pendientes': 0,
+            'facturas_anuladas': 0,
+            'total_facturado': Decimal('0.00'),
+            'total_pagado': Decimal('0.00'),
+            'total_pendiente': Decimal('0.00'),
+            'ultima_cita': cita,
+            'ultima_factura': None,
+        })
+
+        item['total_citas'] += 1
+
+        estado_cita = cita.estado.nombre_estado if cita.estado else ''
+        if estado_cita == 'Programada':
+            item['programadas'] += 1
+        elif estado_cita == 'Atendida':
+            item['atendidas'] += 1
+        elif estado_cita == 'Cancelada':
+            item['canceladas'] += 1
+
+        if cita.fechahora > item['ultima_cita'].fechahora:
+            item['ultima_cita'] = cita
+
+    facturas = Factura.objects.filter(
+        cita_id__in=citas_ids
+    ).select_related(
+        'cita',
+        'cita__cliente',
+        'cita__operativo',
+        'cita__operativo__personal',
+        'estado_pago'
+    ).order_by('-fecha_factura')
+
+    if estado_factura:
+        facturas = facturas.filter(estado_pago__nombre=estado_factura)
+
+    for factura in facturas:
+        if not factura.cita or not factura.cita.cliente:
+            continue
+
+        operativo = factura.cita.operativo
+        operativo_key = operativo.id_operativo if operativo else 0
+        key = (operativo_key, factura.cita.cliente.id_cliente)
+        item = resumen.get(key)
+
+        if not item:
+            continue
+
+        estado_pago = factura.estado_pago.nombre if factura.estado_pago else ''
+        total = factura.total or Decimal('0.00')
+
+        item['total_facturas'] += 1
+
+        if estado_pago == 'Pagada':
+            item['facturas_pagadas'] += 1
+            item['total_pagado'] += total
+            item['total_facturado'] += total
+        elif estado_pago == 'Pendiente':
+            item['facturas_pendientes'] += 1
+            item['total_pendiente'] += total
+            item['total_facturado'] += total
+        elif estado_pago == 'Anulada':
+            item['facturas_anuladas'] += 1
+        else:
+            item['total_facturado'] += total
+
+        if not item['ultima_factura']:
+            item['ultima_factura'] = factura
+
+    clientes_resumen = list(resumen.values())
+
+    if estado_factura:
+        clientes_resumen = [
+            item for item in clientes_resumen
+            if item['total_facturas'] > 0
+        ]
+
+    clientes_resumen.sort(
+        key=lambda item: item['ultima_cita'].fechahora,
+        reverse=orden_fecha != 'antiguas'
+    )
+
+    total_clientes = len({
+        item['cliente'].id_cliente
+        for item in clientes_resumen
+    })
+    total_citas = sum(item['total_citas'] for item in clientes_resumen)
+    total_facturas = sum(item['total_facturas'] for item in clientes_resumen)
+    total_pagado = sum(
+        (item['total_pagado'] for item in clientes_resumen),
+        Decimal('0.00')
+    )
+    total_pendiente = sum(
+        (item['total_pendiente'] for item in clientes_resumen),
+        Decimal('0.00')
+    )
+
+    operativos = Operativo.objects.select_related(
+        'personal'
+    ).order_by(
+        'personal__nombre',
+        'personal__apellido'
+    )
+
+    return render(
+        request,
+        'administrativo/clientes_cuentas.html',
+        {
+            'clientes_resumen': clientes_resumen,
+            'operativos': operativos,
+            'busqueda': busqueda,
+            'operativo_id': operativo_id,
+            'estado_factura': estado_factura,
+            'orden_fecha': orden_fecha,
+            'total_clientes': total_clientes,
+            'total_citas': total_citas,
+            'total_facturas': total_facturas,
+            'total_pagado': total_pagado,
+            'total_pendiente': total_pendiente,
+            'acciones_recientes': HistorialAccion.objects.order_by('-fecha')[:20],
+        }
+    )
 
 
 @login_required
@@ -129,14 +973,21 @@ def crear_solicitud_web(request):
             request,
             "Nombre, telefono y mensaje son obligatorios."
         )
-        return render(request, 'web/index.html', status=400)
+        return redirect(f"{reverse('landing')}#contacts")
+
+    if len(propuesta) < 10 or len(propuesta) > 250:
+        messages.error(
+            request,
+            "El mensaje debe tener entre 10 y 250 caracteres."
+        )
+        return redirect(f"{reverse('landing')}#contacts")
 
     if len(telefono) != 8:
         messages.error(
             request,
             "El telefono debe tener exactamente 8 numeros."
         )
-        return render(request, 'web/index.html', status=400)
+        return redirect(f"{reverse('landing')}#contacts")
 
     if email:
         try:
@@ -146,17 +997,22 @@ def crear_solicitud_web(request):
                 request,
                 "Ingrese un correo valido o deje el campo vacio."
             )
-            return render(request, 'web/index.html', status=400)
+            return redirect(f"{reverse('landing')}#contacts")
+
+    filtro_contacto = Q(Numero_telefonico=telefono)
+
+    if email:
+        filtro_contacto |= Q(Email__iexact=email)
 
     if Propuestas_Citas.objects.filter(
-        Numero_telefonico=telefono,
+        filtro_contacto,
         Atendida=False
     ).exists():
         messages.warning(
             request,
             "Ya tienes una solicitud pendiente. La clinica se pondra en contacto contigo para confirmarla."
         )
-        return render(request, 'web/index.html', status=400)
+        return redirect(f"{reverse('landing')}#contacts")
 
     hoy = timezone.localdate()
     inicio_dia = timezone.make_aware(
@@ -165,7 +1021,7 @@ def crear_solicitud_web(request):
     fin_dia = inicio_dia + timedelta(days=1)
 
     solicitudes_hoy = Propuestas_Citas.objects.filter(
-        Numero_telefonico=telefono,
+        filtro_contacto,
         Fecha__gte=inicio_dia,
         Fecha__lt=fin_dia
     ).count()
@@ -175,7 +1031,7 @@ def crear_solicitud_web(request):
             request,
             "Llegaste al limite de solicitudes por hoy. Intenta de nuevo manana o contacta directamente a la clinica."
         )
-        return render(request, 'web/index.html', status=429)
+        return redirect(f"{reverse('landing')}#contacts")
 
     Propuestas_Citas.objects.create(
         Nombre=nombre,
@@ -358,16 +1214,25 @@ def crear_cita_cliente(request):
 
 
 def seleccionar_operativo(request):
+    operativo_actual = obtener_operativo_usuario(request)
+
     if request.method == 'POST':
-        form = OperativoSelectForm(request.POST)
+        form = OperativoSelectForm(
+            request.POST,
+            operativo_inicial=operativo_actual
+        )
         if form.is_valid():
             operativo_id = form.cleaned_data['operativo'].id_operativo
             request.session['operativo_id'] = operativo_id
             request.session['flujo_origen'] = 'calendar'
             return redirect('calendar')
     else:
-        form = OperativoSelectForm()
-    return render(request, 'citas/seleccionar_operativo.html', {'form': form})
+        form = OperativoSelectForm(operativo_inicial=operativo_actual)
+
+    return render(request, 'citas/seleccionar_operativo.html', {
+        'form': form,
+        'operativo_actual': operativo_actual
+    })
 
 
 
@@ -532,17 +1397,30 @@ def calendar_view(request):
         return redirect('seleccionar_operativo')
 
     operativo = get_object_or_404(Operativo, id_operativo=operativo_id)
+    actualizar_citas_vencidas(operativo=operativo)
+    fecha_minima, fecha_maxima = obtener_rango_agenda()
 
     fecha_str = request.GET.get('fecha')
-    base_date = datetime.strptime(fecha_str, "%Y-%m-%d").date() if fecha_str else date.today()
+    try:
+        base_date = datetime.strptime(fecha_str, "%Y-%m-%d").date() if fecha_str else timezone.localdate()
+    except (TypeError, ValueError):
+        base_date = timezone.localdate()
 
     offset = int(request.GET.get("offset", 0))
 
     # 🔥 aplicar desplazamiento de semanas
     base_date = base_date + timedelta(weeks=offset)
 
+    if base_date < fecha_minima:
+        base_date = fecha_minima
+
+    if base_date > fecha_maxima:
+        base_date = fecha_maxima
+
     # 🔥 construir semana (lunes a domingo)
     inicio_semana = base_date - timedelta(days=base_date.weekday())
+    semana_minima = fecha_minima - timedelta(days=fecha_minima.weekday())
+    semana_maxima = fecha_maxima - timedelta(days=fecha_maxima.weekday())
 
     dias = []
     for i in range(7):
@@ -570,6 +1448,11 @@ def calendar_view(request):
         fin = inicio + timedelta(minutes=c.duracion_minutos or 30)
 
         inicio_minutos = (inicio.hour - 8) * 60 + inicio.minute
+        estado_nombre = c.estado.nombre_estado if c.estado else "Programada"
+        estado_clase = {
+            "Atendida": "event-atendida",
+            "Cancelada": "event-cancelada",
+        }.get(estado_nombre, "event-programada")
 
         eventos.append({
             "id": c.id_cita,
@@ -585,6 +1468,8 @@ def calendar_view(request):
 
             "hora_texto": inicio.strftime("%H:%M"),
             "hora_fin": fin.strftime("%H:%M"),
+            "estado": estado_nombre,
+            "estado_clase": estado_clase,
         })
 
     return render(request, "citas/calendar.html", {
@@ -593,6 +1478,13 @@ def calendar_view(request):
         "horas": horas,
         "eventos": eventos,
         "offset": offset,
+        "fecha_actual": base_date,
+        "fecha_minima": fecha_minima,
+        "fecha_maxima": fecha_maxima,
+        "fecha_anterior": base_date - timedelta(weeks=1),
+        "fecha_siguiente": base_date + timedelta(weeks=1),
+        "puede_semana_anterior": inicio_semana > semana_minima,
+        "puede_semana_siguiente": inicio_semana < semana_maxima,
         "Clientes": Cliente.objects.all(),
         "duracion": 30,
         "hora_texto": "",
@@ -688,8 +1580,8 @@ def crear_cita_ajax(request):
     duracion = int(data.get("duracion") or 0)
     cliente_id = data.get("cliente_id")
 
-    nombre = data.get("nombre", "").strip()
-    apellido = data.get("apellido", "").strip()
+    nombre = normalizar_nombre_persona(data.get("nombre", ""))
+    apellido = normalizar_nombre_persona(data.get("apellido", ""))
     telefono = data.get("telefono", "").strip()
     email = data.get("email", "").strip()
     sexo = data.get("sexo", "").strip()
@@ -730,6 +1622,18 @@ def crear_cita_ajax(request):
             "mensaje": "No se pueden crear citas en fechas pasadas."
         })
 
+    if not fecha_en_rango_agenda(inicio.date()):
+        return JsonResponse({
+            "error": True,
+            "mensaje": "Solo se pueden agendar citas dentro de un limite de un año."
+        })
+
+    if not fecha_laboral(inicio.date()):
+        return JsonResponse({
+            "error": True,
+            "mensaje": "La clinica no atiende los lunes."
+        })
+
     if duracion <= 0:
         return JsonResponse({
             "error": True,
@@ -742,6 +1646,12 @@ def crear_cita_ajax(request):
             "mensaje": "Debe seleccionar al menos un servicio."
         })
 
+    if not cita_en_horario_laboral(inicio, duracion):
+        return JsonResponse({
+            "error": True,
+            "mensaje": "La cita debe terminar antes del cierre de la clinica."
+        })
+
     if not cliente_id:
         if not nombre or not apellido or not telefono or not sexo:
             return JsonResponse({
@@ -749,11 +1659,26 @@ def crear_cita_ajax(request):
                 "mensaje": "Nombre, apellido, telefono y sexo son obligatorios."
             })
 
+        if not nombre_persona_valido(nombre) or not nombre_persona_valido(apellido):
+            return JsonResponse({
+                "error": True,
+                "mensaje": "Nombre y apellido deben contener solo letras y tener un formato valido."
+            })
+
         if not telefono.isdigit() or len(telefono) != 8:
             return JsonResponse({
                 "error": True,
                 "mensaje": "El telefono debe tener exactamente 8 numeros."
             })
+
+        if email:
+            try:
+                validate_email(email)
+            except ValidationError:
+                return JsonResponse({
+                    "error": True,
+                    "mensaje": "Ingrese un correo valido o deje el campo vacio."
+                })
 
     cliente = (
         get_object_or_404(Cliente, id_cliente=cliente_id)
@@ -805,6 +1730,8 @@ def crear_cita_ajax(request):
             servicio_id=servicio_id
         )
 
+    registrar_cita_creada(request, cita)
+
     return JsonResponse({
         "ok": True,
         "id_cita": cita.id_cita,
@@ -853,9 +1780,24 @@ def editar_cita_ajax(request):
         id_cita=data["id"]
     )
 
+    estado_actual = cita.estado.nombre_estado if cita.estado else "Programada"
+
+    if estado_actual != "Programada":
+        return JsonResponse({
+            "error": True,
+            "mensaje": "Solo se pueden modificar citas programadas."
+        })
+
     fecha = data["fecha"]
     hora = data["hora"]
     duracion = int(data["duracion"])
+    servicios_ids = data.get("servicios", [])
+
+    if not servicios_ids:
+        return JsonResponse({
+            "error": True,
+            "mensaje": "Debe seleccionar al menos un servicio."
+        })
 
     inicio = datetime.strptime(
         f"{fecha} {hora}",
@@ -873,11 +1815,29 @@ def editar_cita_ajax(request):
             "mensaje": "No se puede mover una cita a una fecha pasada."
         })
 
+    if not fecha_en_rango_agenda(inicio.date()):
+        return JsonResponse({
+            "error": True,
+            "mensaje": "Solo se pueden mover citas dentro de un limite de un año."
+        })
+
+    if not fecha_laboral(inicio.date()):
+        return JsonResponse({
+            "error": True,
+            "mensaje": "La clinica no atiende los lunes."
+        })
+
     if duracion <= 0:
 
         return JsonResponse({
             "error": True,
             "mensaje": "La duración debe ser mayor que 0."
+        })
+
+    if not cita_en_horario_laboral(inicio, duracion):
+        return JsonResponse({
+            "error": True,
+            "mensaje": "La cita debe terminar antes del cierre de la clinica."
         })
 
     # VALIDAR SOLAPAMIENTO
@@ -897,11 +1857,205 @@ def editar_cita_ajax(request):
 
     cita.fechahora = inicio
     cita.duracion_minutos = duracion
+    servicios = Servicio.objects.filter(id_servicio__in=servicios_ids)
 
     cita.save()
+    cita.servicios.set(servicios)
 
     return JsonResponse({
         "ok": True
+    })
+
+
+@login_required
+@require_POST
+def cancelar_cita_ajax(request):
+    data = json.loads(request.body)
+    try:
+        motivo = limpiar_motivo(data.get("motivo", ""))
+    except ValueError as exc:
+        return JsonResponse({
+            "error": True,
+            "mensaje": str(exc)
+        })
+
+    cita = get_object_or_404(
+        Cita,
+        id_cita=data["id"]
+    )
+
+    estado_actual = cita.estado.nombre_estado if cita.estado else ""
+
+    if estado_actual == "Atendida":
+        return JsonResponse({
+            "error": True,
+            "mensaje": "No se puede cancelar una cita que ya fue atendida."
+        })
+
+    if estado_actual == "Cancelada":
+        return JsonResponse({
+            "error": True,
+            "mensaje": "La cita ya estaba cancelada."
+        })
+
+    estado_cancelada = get_object_or_404(
+        Estado,
+        nombre_estado="Cancelada"
+    )
+
+    cita.estado = estado_cancelada
+    cita.save()
+    registrar_accion(
+        request,
+        "Cancelar cita",
+        motivo,
+        cita=cita
+    )
+
+    return JsonResponse({
+        "ok": True
+    })
+
+
+@login_required
+@require_POST
+def cambiar_estado_cita_ajax(request):
+    data = json.loads(request.body)
+
+    cita = get_object_or_404(
+        Cita.objects.select_related('estado', 'operativo'),
+        id_cita=data["id"]
+    )
+
+    nuevo_estado = (data.get("estado") or "").strip()
+    estados_validos = ["Programada", "Atendida", "Cancelada"]
+
+    if nuevo_estado not in estados_validos:
+        return JsonResponse({
+            "error": True,
+            "mensaje": "Estado no valido."
+        })
+
+    estado_actual = (
+        cita.estado.nombre_estado.strip()
+        if cita.estado and cita.estado.nombre_estado
+        else "Programada"
+    )
+
+    if estado_actual == "Atendida":
+        return JsonResponse({
+            "error": True,
+            "mensaje": "Una cita atendida ya no puede cambiar de estado."
+        })
+
+    if estado_actual == "Cancelada" and nuevo_estado != "Programada":
+        return JsonResponse({
+            "error": True,
+            "mensaje": "Una cita cancelada solo puede volver a programada."
+        })
+
+    if estado_actual == "Programada" and nuevo_estado == "Programada":
+        return JsonResponse({
+            "ok": True
+        })
+
+    motivo = ""
+
+    if nuevo_estado == "Cancelada":
+        try:
+            motivo = limpiar_motivo(data.get("motivo", ""))
+        except ValueError as exc:
+            return JsonResponse({
+                "error": True,
+                "mensaje": str(exc)
+            })
+
+    if nuevo_estado == "Atendida":
+        inicio = timezone.localtime(cita.fechahora)
+
+        if inicio > timezone.localtime():
+            return JsonResponse({
+                "error": True,
+                "mensaje": "No se puede marcar como atendida una cita futura."
+            })
+
+    if estado_actual == "Cancelada" and nuevo_estado == "Programada":
+        inicio = timezone.localtime(cita.fechahora)
+
+        if inicio < timezone.localtime():
+            return JsonResponse({
+                "error": True,
+                "mensaje": "No se puede volver a programar una cita en una fecha pasada."
+            })
+
+        if not fecha_en_rango_agenda(inicio.date()):
+            return JsonResponse({
+                "error": True,
+                "mensaje": "No se puede volver a programar fuera del limite de un año."
+            })
+
+        if not fecha_laboral(inicio.date()):
+            return JsonResponse({
+                "error": True,
+                "mensaje": "La clinica no atiende los lunes."
+            })
+
+        if not cita_en_horario_laboral(inicio, cita.duracion_minutos or 30):
+            return JsonResponse({
+                "error": True,
+                "mensaje": "La cita no puede quedar fuera del horario de atencion."
+            })
+
+        if hay_conflicto_intervalo(
+            cita.operativo,
+            inicio.date(),
+            inicio,
+            cita.duracion_minutos or 30,
+            excluir=cita.id_cita
+        ):
+            return JsonResponse({
+                "error": True,
+                "mensaje": "No se puede programar porque se solapa con otra cita."
+            })
+
+    estado = Estado.objects.filter(
+        nombre_estado__iexact=nuevo_estado
+    ).first()
+
+    if not estado:
+        return JsonResponse({
+            "error": True,
+            "mensaje": "No existe ese estado de cita en la base de datos."
+        })
+
+    cita.estado = estado
+    cita.save()
+
+    if nuevo_estado == "Cancelada":
+        registrar_accion(
+            request,
+            "Cancelar cita",
+            motivo,
+            cita=cita
+        )
+    elif nuevo_estado == "Atendida":
+        registrar_accion(
+            request,
+            "Marcar cita atendida",
+            "Cita marcada como atendida.",
+            cita=cita
+        )
+    elif nuevo_estado == "Programada":
+        registrar_accion(
+            request,
+            "Reprogramar cita",
+            "Cita cancelada devuelta a programada.",
+            cita=cita
+        )
+
+    return JsonResponse({
+        "ok": True,
+        "estado": nuevo_estado
     })
 
 
@@ -959,6 +2113,9 @@ def obtener_cita_ajax(request, id_cita):
 
         "email":
             cita.cliente.email,
+
+        "estado":
+            cita.estado.nombre_estado if cita.estado else "Programada",
 
         "servicios": servicios,
 
@@ -1196,6 +2353,8 @@ def confirmar_cita(request):
         except Estado.DoesNotExist:
             pass
 
+        registrar_cita_creada(request, cita)
+
         # 🧹 Limpiar sesión
         for key in [
             'servicios_seleccionados',
@@ -1262,6 +2421,7 @@ def resumen_citas(request):
 
     return render(request, 'operativo.html', {
         'citas': citas,
+        'operativo': operativo,
         'total_citas_hoy': total_citas_hoy,
         'citas_confirmadas': citas_confirmadas,
         'citas_canceladas': citas_canceladas,
@@ -1269,10 +2429,46 @@ def resumen_citas(request):
     })
 
 
+@login_required
 def cerrar_cita(request, id_cita):
-    
     cita = get_object_or_404(Cita, id_cita=id_cita)
 
+    estado_actual = cita.estado.nombre_estado if cita.estado else ""
+
+    if estado_actual == "Atendida":
+        messages.error(request, "No se puede cancelar una cita atendida.")
+        return redirect('operativo')
+
+    if estado_actual == "Cancelada":
+        messages.warning(request, "La cita ya estaba cancelada.")
+        return redirect('operativo')
+
+    if request.method == "POST":
+        try:
+            motivo = limpiar_motivo(request.POST.get('motivo', ''))
+        except ValueError as exc:
+            messages.error(request, str(exc))
+        else:
+            estado_cancelada = get_object_or_404(
+                Estado,
+                nombre_estado='Cancelada'
+            )
+            cita.estado = estado_cancelada
+            cita.save()
+            registrar_accion(
+                request,
+                "Cancelar cita",
+                motivo,
+                cita=cita
+            )
+            messages.success(request, "Cita cancelada correctamente.")
+            return redirect('operativo')
+
+    return render(request, 'citas/cancelar_cita.html', {
+        'cita': cita
+    })
+
+    """
     try:
         # Obtener el estado 'Cancelada'
         estado_cancelada = Estado.objects.get(nombre_estado='Cancelada')
@@ -1284,6 +2480,7 @@ def cerrar_cita(request, id_cita):
         pass
 
     return redirect('operativo')
+    """
 
 
 @login_required
@@ -1414,6 +2611,7 @@ def detalle_empleado(request, id_personal):
 
 @login_required
 def detalle_cita(request, id_cita):
+    actualizar_citas_vencidas()
 
     cita = get_object_or_404(
         Cita.objects.select_related(
@@ -1451,9 +2649,16 @@ def detalle_cita(request, id_cita):
 def generar_factura(request, id_cita):
 
     cita = get_object_or_404(
-        Cita,
+        Cita.objects.select_related('estado'),
         id_cita=id_cita
     )
+
+    if cita_esta_cancelada(cita):
+        messages.error(
+            request,
+            "No se puede generar factura para una cita cancelada."
+        )
+        return redirect('detalle_cita', id_cita=cita.id_cita)
 
     # Evitar duplicados
     factura_existente = Factura.objects.filter(
@@ -1503,6 +2708,7 @@ def ver_factura(request, id_factura):
         Factura.objects.select_related(
             'cita',
             'cita__cliente',
+            'cita__estado',
             'estado_pago',
             'metodo_pago'
         ),
@@ -1715,6 +2921,7 @@ def descargar_factura_pdf(request, id_factura):
 
 @login_required
 def listar_facturas(request):
+    actualizar_citas_vencidas()
 
     facturas = Factura.objects.select_related(
         'cita',
@@ -1737,37 +2944,32 @@ def listar_facturas(request):
             'estado': estado
         }
     )
-
-
-
-@login_required
-def anular_factura(request, id_factura):
-
-    factura = get_object_or_404(
-        Factura,
-        id_factura=id_factura
-    )
-
-    estado_anulada = EstadoPago.objects.get(
-        nombre='Anulada'
-    )
-
-    factura.estado_pago = estado_anulada
-    factura.save()
-
-    return redirect(
-        'ver_factura',
-        id_factura=factura.id_factura
-    )
-
-
 @login_required
 def pagar_factura(request, id_factura):
 
-    factura = get_object_or_404(Factura, id_factura=id_factura)
+    factura = get_object_or_404(
+        Factura.objects.select_related(
+            'estado_pago',
+            'cita',
+            'cita__estado'
+        ),
+        id_factura=id_factura
+    )
+
+    if cita_esta_cancelada(factura.cita):
+        messages.error(
+            request,
+            "No se puede pagar una factura vinculada a una cita cancelada."
+        )
+        return redirect('ver_factura', id_factura=id_factura)
+
+    if factura.estado_pago.nombre == "Anulada":
+        messages.error(request, "No se puede pagar una factura anulada.")
+        return redirect('ver_factura', id_factura=id_factura)
 
     # evitar pagar dos veces
     if factura.estado_pago.nombre == "Pagada":  
+        messages.warning(request, "Esta factura ya estaba pagada.")
         return redirect('ver_factura', id_factura=id_factura)
 
     metodos = MetodoPago.objects.all()
@@ -1783,6 +2985,13 @@ def pagar_factura(request, id_factura):
         factura.estado_pago = estado_pagada
         factura.metodo_pago = metodo
         factura.save()
+        registrar_accion(
+            request,
+            "Pagar factura",
+            f"Factura pagada con metodo {metodo.nombre}.",
+            factura=factura,
+            cita=factura.cita
+        )
 
         return redirect('ver_factura', id_factura=id_factura)
 
@@ -1797,19 +3006,43 @@ def pagar_factura(request, id_factura):
 def anular_factura(request, id_factura):
 
     factura = get_object_or_404(
-        Factura,
+        Factura.objects.select_related('estado_pago', 'cita'),
         id_factura=id_factura
     )
 
-    estado_anulada = get_object_or_404(
-        EstadoPago,
-        nombre='Anulada'
-    )
+    if factura.estado_pago.nombre == "Anulada":
+        messages.warning(request, "Esta factura ya estaba anulada.")
+        return redirect(
+            'ver_factura',
+            id_factura=factura.id_factura
+        )
 
-    factura.estado_pago = estado_anulada
-    factura.save()
+    if request.method == "POST":
+        try:
+            motivo = limpiar_motivo(request.POST.get('motivo', ''))
+        except ValueError as exc:
+            messages.error(request, str(exc))
+        else:
+            estado_anulada = get_object_or_404(
+                EstadoPago,
+                nombre='Anulada'
+            )
 
-    return redirect(
-        'ver_factura',
-        id_factura=factura.id_factura
-    )
+            factura.estado_pago = estado_anulada
+            factura.save()
+            registrar_accion(
+                request,
+                "Anular factura",
+                motivo,
+                factura=factura,
+                cita=factura.cita
+            )
+            messages.success(request, "Factura anulada correctamente.")
+            return redirect(
+                'ver_factura',
+                id_factura=factura.id_factura
+            )
+
+    return render(request, 'facturas/anular_factura.html', {
+        'factura': factura
+    })

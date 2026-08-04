@@ -14,6 +14,8 @@ urlpatterns = [
     path('crear-cita-desde-propuesta/<int:id>/', views.crear_cita_desde_propuesta, name='crear_cita_desde_propuesta'),
 
     path('administrativo/', views.administrativo_view, name='administrativo'),
+    path('administrativo/finanzas/', views.finanzas_admin, name='finanzas_admin'),
+    path('administrativo/clientes-cuentas/', views.clientes_cuentas_admin, name='clientes_cuentas_admin'),
     path('operativo/', views.resumen_citas, name='operativo'),
     path('empleados/', views.gestionar_empleados, name='gestionar_empleados'),
     path('empleados/<int:id_personal>/', views.detalle_empleado, name='detalle_empleado'),
@@ -47,6 +49,8 @@ urlpatterns = [
     path("clientes/buscar/", views.buscar_clientes, name="buscar_clientes"),
     path("citas/<int:id_cita>/json/", views.obtener_cita_ajax, name="obtener_cita_ajax"),
     path("citas/editar-ajax/", views.editar_cita_ajax, name="editar_cita_ajax"),
+    path("citas/cancelar-ajax/", views.cancelar_cita_ajax, name="cancelar_cita_ajax"),
+    path("citas/cambiar-estado-ajax/", views.cambiar_estado_cita_ajax, name="cambiar_estado_cita_ajax"),
     
 
     #Login

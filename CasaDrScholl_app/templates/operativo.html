@@ -11,9 +11,17 @@
                 <h2>Agenda y atencion</h2>
                 <p>Revisa tus citas, filtra por estado y entra al detalle para facturar o dar seguimiento.</p>
             </div>
-            <a href="{% url 'seleccionar_operativo' %}" class="btn btn-primary">
-                Registrar nueva cita
-            </a>
+            <div class="dashboard-actions">
+                {% if operativo %}
+                    <div class="operator-badge">
+                        <span>Operativo activo</span>
+                        <strong>{{ operativo.personal.nombre }} {{ operativo.personal.apellido }}</strong>
+                    </div>
+                {% endif %}
+                <a href="{% url 'seleccionar_operativo' %}" class="btn btn-primary">
+                    Registrar nueva cita
+                </a>
+            </div>
         </section>
 
         <div class="action-grid action-grid-three mb-4">

@@ -60,6 +60,30 @@ body.app-shell {
     color: #ffffff !important;
 }
 
+.app-user-pill {
+    align-items: flex-start;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.84);
+    display: inline-flex;
+    flex-direction: column;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1.15;
+    padding: 0.42rem 0.7rem;
+    text-transform: uppercase;
+}
+
+.app-user-pill strong {
+    color: #ffffff;
+    font-size: 0.92rem;
+    letter-spacing: 0;
+    margin-top: 2px;
+    text-transform: none;
+    white-space: nowrap;
+}
+
 .app-logout {
     border-radius: 8px;
     font-weight: 700;
@@ -277,6 +301,46 @@ body.app-shell {
     max-width: 680px;
 }
 
+.dashboard-actions {
+    align-items: flex-end;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.operator-badge,
+.operator-context {
+    background: rgba(255, 255, 255, 0.86);
+    border: 1px solid var(--clinic-line);
+    border-radius: 8px;
+    box-shadow: 0 12px 26px rgba(18, 50, 62, 0.08);
+    padding: 12px 16px;
+}
+
+.operator-badge span,
+.operator-context span {
+    color: var(--clinic-coral);
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.operator-badge strong,
+.operator-context strong {
+    color: var(--clinic-teal-dark);
+    display: block;
+    font-size: 1rem;
+    line-height: 1.2;
+}
+
+.operator-context small {
+    color: var(--clinic-muted);
+    display: block;
+    margin-top: 4px;
+}
+
 .section-kicker,
 .action-card span,
 .metric-card span {
@@ -427,6 +491,11 @@ body.app-shell {
     .dashboard-hero {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .dashboard-actions {
+        align-items: stretch;
+        width: 100%;
     }
 
     .action-grid {

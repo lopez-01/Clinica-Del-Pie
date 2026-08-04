@@ -1,11 +1,16 @@
 from django import forms
 from .models import Cliente, Servicio, Operativo
-from datetime import time, datetime, date
+from datetime import time, datetime, date, timedelta
+import re
 
 
 
 
 class ClienteForm(forms.ModelForm):
+    PATRON_NOMBRE = re.compile(
+        r"^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?:[ '-][A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$"
+    )
+
     SEXO_CHOICES = [
         ('M', 'Masculino'),
         ('F', 'Femenino'),
@@ -47,6 +52,35 @@ class ClienteForm(forms.ModelForm):
             raise forms.ValidationError("El correo electrónico debe contener '@'")
         return email
 
+    def limpiar_nombre(self, valor):
+        texto = " ".join((valor or "").strip().split()).title()
+        letras = re.sub(r"[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]", "", texto).lower()
+
+        if len(letras) < 2:
+            raise forms.ValidationError("Debe contener al menos dos letras.")
+
+        if len(set(letras)) == 1:
+            raise forms.ValidationError("Ingrese un nombre valido.")
+
+        if not self.PATRON_NOMBRE.match(texto):
+            raise forms.ValidationError("Solo se permiten letras, espacios, guiones o apostrofes.")
+
+        return texto
+
+    def clean_nombre(self):
+        return self.limpiar_nombre(self.cleaned_data.get('nombre'))
+
+    def clean_apellido(self):
+        return self.limpiar_nombre(self.cleaned_data.get('apellido'))
+
+    def clean_n_telefono(self):
+        telefono = self.cleaned_data.get('n_telefono', '').strip()
+
+        if not telefono.isdigit() or len(telefono) != 8:
+            raise forms.ValidationError("El telefono debe tener exactamente 8 numeros.")
+
+        return telefono
+
 
 class ServicioSelectForm(forms.Form):
     servicios = forms.ModelMultipleChoiceField(
@@ -57,13 +91,31 @@ class ServicioSelectForm(forms.Form):
     )
 
 
+class OperativoChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return f"{obj.personal.nombre} {obj.personal.apellido}"
+
+
 class OperativoSelectForm(forms.Form):
-    operativo = forms.ModelChoiceField(
-        queryset=Operativo.objects.all(),
+    operativo = OperativoChoiceField(
+        queryset=Operativo.objects.select_related('personal').all(),
         required=True,
         label="Seleccione un operativo",
         widget=forms.Select(attrs={'class': 'form-select'})
     )
+
+    def __init__(self, *args, operativo_inicial=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['operativo'].queryset = Operativo.objects.select_related(
+            'personal'
+        ).order_by(
+            'personal__nombre',
+            'personal__apellido'
+        )
+
+        if operativo_inicial:
+            self.fields['operativo'].initial = operativo_inicial
+            self.fields['operativo'].empty_label = None
 
 
 class FechaHoraForm(forms.Form):
@@ -122,6 +174,11 @@ class FechaHoraForm(forms.Form):
         if fecha < date.today():
             raise forms.ValidationError(
                 "No se pueden registrar citas en fechas pasadas."
+            )
+
+        if fecha > date.today() + timedelta(days=365):
+            raise forms.ValidationError(
+                "No se pueden registrar citas con mas de un año de anticipacion."
             )
         
         if fecha.weekday() == 0:

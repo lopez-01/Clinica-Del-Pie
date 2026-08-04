@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-vkjc!yn*!=&kot!m)r@g1f&ir*drj9u#d4j4$d5(*ksk%x)_s_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'testserver']
 
 
 # Application definition
@@ -51,6 +51,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+CSRF_FAILURE_VIEW = 'CasaDrScholl_app.views.csrf_failure'
 
 ROOT_URLCONF = 'CasaDrScholl.urls'
 
@@ -84,6 +86,7 @@ DATABASES = {
         'PORT': '1433',                    # Generalmente 1433, puedes omitirlo si quieres
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
+            'extra_params': 'Encrypt=no;TrustServerCertificate=yes',
             'trusted_connection': 'yes',  # Para usar autenticación integrada de Windows
         },
     },

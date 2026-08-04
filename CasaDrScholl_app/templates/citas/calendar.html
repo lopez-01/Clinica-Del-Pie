@@ -4,27 +4,53 @@
 
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="calendar-topbar">
+
+    <div class="calendar-operator">
+        <span>Operativo</span>
+        <strong>{{ operativo.personal.nombre }} {{ operativo.personal.apellido }}</strong>
+    </div>
 
     <a class="btn btn-secondary"
        href="{% url 'seleccionar_operativo' %}">
         Volver
     </a>
 
-    <a class="btn btn-outline-primary"
-       href="?offset={{ offset|add:'-1' }}">
+</div>
+
+<div class="calendar-toolbar">
+
+    <a class="btn btn-outline-primary{% if not puede_semana_anterior %} disabled{% endif %}"
+       href="{% if puede_semana_anterior %}?fecha={{ fecha_anterior|date:'Y-m-d' }}{% else %}#{% endif %}">
         ← Semana anterior
     </a>
 
     <a class="btn btn-outline-secondary"
-       href="?offset=0">
+       href="?fecha={{ fecha_minima|date:'Y-m-d' }}">
         Hoy
     </a>
 
-    <a class="btn btn-outline-primary"
-       href="?offset={{ offset|add:'1' }}">
+    <a class="btn btn-outline-primary{% if not puede_semana_siguiente %} disabled{% endif %}"
+       href="{% if puede_semana_siguiente %}?fecha={{ fecha_siguiente|date:'Y-m-d' }}{% else %}#{% endif %}">
         Semana siguiente →
     </a>
+
+    <form class="calendar-search"
+          onsubmit="irAFechaCalendario(); return false;">
+        <label for="buscar-fecha-calendario">
+            Ir a fecha
+        </label>
+        <input
+            type="date"
+            id="buscar-fecha-calendario"
+            class="form-control"
+            min="{{ fecha_minima|date:'Y-m-d' }}"
+            max="{{ fecha_maxima|date:'Y-m-d' }}"
+            value="{{ fecha_actual|date:'Y-m-d' }}">
+        <button class="btn btn-info" type="submit">
+            Buscar
+        </button>
+    </form>
 
 </div>
 
@@ -68,11 +94,12 @@
 
             {% for e in eventos %}
                 {% if e.dia == dia %}
-                <div class="event"
+                <div class="event {{ e.estado_clase }}"
 
                     data-id="{{ e.id }}"
                     data-top="{{ e.top }}"
                     data-height="{{ e.height }}"
+                    data-estado="{{ e.estado }}"
 
                     onclick="abrirEditarCita('{{ e.id }}')">
                     
@@ -135,7 +162,9 @@
                 <input
                     type="date"
                     id="fecha-cita"
-                    class="form-control">
+                    class="form-control"
+                    min="{{ fecha_minima|date:'Y-m-d' }}"
+                    max="{{ fecha_maxima|date:'Y-m-d' }}">
             </div>
 
             <div class="col-md-6 mb-3">
@@ -173,7 +202,7 @@
 
                     <div class="col-md-6 mb-2">
 
-                        <label class="form-check">
+                        <label class="form-check service-option">
 
                             <input
                                 class="form-check-input servicio-check"
@@ -437,6 +466,8 @@
             class="alert alert-info mb-3">
         </div>
 
+        <div id="editar-campos">
+
         <div class="mb-3">
 
             <label class="form-label">
@@ -453,13 +484,19 @@
             type="hidden"
             id="editar-id">
 
+        <input
+            type="hidden"
+            id="editar-estado">
+
         <div class="mb-3">
             <label>Fecha</label>
 
             <input
                 type="date"
                 id="editar-fecha"
-                class="form-control">
+                class="form-control"
+                min="{{ fecha_minima|date:'Y-m-d' }}"
+                max="{{ fecha_maxima|date:'Y-m-d' }}">
         </div>
 
         <div class="mb-3">
@@ -482,9 +519,12 @@
                 step="1">
         </div>
 
-        <div class="d-flex gap-2">
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap">
 
             <button
+                id="btn-guardar-edicion"
                 class="btn btn-success flex-fill"
                 onclick="guardarEdicionCita()">
 
@@ -493,10 +533,40 @@
             </button>
 
             <button
+                id="btn-atender-cita"
+                class="btn btn-success flex-fill"
+                style="display:none;"
+                onclick="atenderCita()">
+
+                Marcar atendida
+
+            </button>
+
+            <button
+                id="btn-programar-cita"
+                class="btn btn-primary flex-fill"
+                style="display:none;"
+                onclick="programarCita()">
+
+                Poner programada
+
+            </button>
+
+            <button
+                id="btn-cancelar-cita"
+                class="btn btn-danger flex-fill"
+                style="display:none;"
+                onclick="cancelarCita()">
+
+                Cancelar cita
+
+            </button>
+
+            <button
                 class="btn btn-secondary flex-fill"
                 onclick="cerrarEditarCita()">
 
-                Cancelar
+                Cerrar
 
             </button>
 
@@ -508,6 +578,96 @@
 
 
 <style>
+
+.calendar-topbar,
+.calendar-toolbar {
+    width: min(1180px, calc(100% - 32px));
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.calendar-topbar {
+    margin-bottom: 14px;
+    display: grid;
+    grid-template-columns: minmax(190px, 1fr) auto;
+    align-items: stretch;
+    gap: 12px;
+}
+
+.calendar-toolbar {
+    margin-bottom: 18px;
+    display: grid;
+    grid-template-columns: auto auto auto 1fr;
+    align-items: end;
+    gap: 12px;
+}
+
+.calendar-operator {
+    align-self: stretch;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(18, 50, 62, 0.11);
+    border-radius: 8px;
+    box-shadow: 0 12px 28px rgba(18, 50, 62, 0.08);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 48px;
+    padding: 8px 14px;
+}
+
+.calendar-operator span {
+    color: #f4765d;
+    font-size: 0.72rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.calendar-operator strong {
+    color: #12323e;
+    font-size: 0.95rem;
+    line-height: 1.2;
+}
+
+.calendar-topbar .btn,
+.calendar-toolbar .btn {
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.calendar-search {
+    justify-self: end;
+    display: grid;
+    grid-template-columns: auto minmax(170px, 210px) auto;
+    align-items: end;
+    gap: 8px;
+}
+
+.calendar-search label {
+    align-self: center;
+    margin: 0;
+    font-weight: 700;
+    color: #073246;
+    white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+    .calendar-topbar,
+    .calendar-toolbar {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .calendar-search {
+        grid-column: 1 / -1;
+        justify-self: stretch;
+        grid-template-columns: 1fr;
+    }
+}
 
 .hour-slot{
     height:120px;
@@ -563,7 +723,6 @@
     position: absolute;
     left: 5px;
     right: 5px;
-    background: #dc3545;
     color: white;
     border-radius: 6px;
     font-size: 12px;
@@ -571,6 +730,26 @@
     cursor: grab;
     padding: 4px;
     overflow: hidden;
+}
+
+.event-programada {
+    background: #0d6efd;
+}
+
+.event-atendida {
+    background: #198754;
+}
+
+.event-cancelada {
+    background: #dc3545;
+}
+
+.service-option,
+.service-option * {
+    cursor: pointer;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .event-header {
@@ -605,6 +784,68 @@
 <script>
 
 let clienteExistente = null;
+const FECHA_MINIMA_AGENDA = "{{ fecha_minima|date:'Y-m-d' }}";
+const FECHA_MAXIMA_AGENDA = "{{ fecha_maxima|date:'Y-m-d' }}";
+const HORA_CIERRE_CLINICA = "17:00";
+
+function fechaEnRangoAgenda(fecha) {
+    return fecha >= FECHA_MINIMA_AGENDA && fecha <= FECHA_MAXIMA_AGENDA;
+}
+
+function validarFechaAgenda(fecha) {
+    if (!fechaEnRangoAgenda(fecha)) {
+        alert("Solo se pueden agendar citas dentro del rango de un año.");
+        return false;
+    }
+
+    const dia = new Date(`${fecha}T00:00:00`).getDay();
+
+    if (dia === 1) {
+        alert("La clinica no atiende los lunes.");
+        return false;
+    }
+
+    return true;
+}
+
+function validarHorarioCierre(fecha, hora, duracion) {
+    const inicio = new Date(`${fecha}T${hora}:00`);
+    const fin = new Date(inicio.getTime() + duracion * 60000);
+    const cierre = new Date(`${fecha}T${HORA_CIERRE_CLINICA}:00`);
+
+    if (fin > cierre) {
+        alert("La cita debe terminar antes del cierre de la clinica.");
+        return false;
+    }
+
+    return true;
+}
+
+function nombrePersonaValido(valor) {
+    const limpio = valor.trim().replace(/\s+/g, " ");
+    const letras = limpio.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g, "").toLowerCase();
+    const patron = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?:[ '-][A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$/;
+
+    if (letras.length < 2) return false;
+    if (new Set(letras).size === 1) return false;
+
+    return patron.test(limpio);
+}
+
+function irAFechaCalendario() {
+    const fecha = document.getElementById("buscar-fecha-calendario").value;
+
+    if (!fecha) {
+        alert("Selecciona una fecha para buscar.");
+        return;
+    }
+
+    if (!validarFechaAgenda(fecha)) {
+        return;
+    }
+
+    window.location.href = `?fecha=${fecha}`;
+}
 
 function mostrarNuevoCliente() {
 
@@ -1006,6 +1247,10 @@ function crearDesdeClick(event, el) {
 
     const dia = el.dataset.dia;
 
+    if (!validarFechaAgenda(dia)) {
+        return;
+    }
+
     const ahora = new Date();
 
     const fechaSeleccionadaJS = new Date(
@@ -1033,6 +1278,29 @@ function crearDesdeClick(event, el) {
 }
 
 
+function actualizarAccionesEdicion(estado) {
+
+    const esProgramada = estado === "Programada";
+    const esCancelada = estado === "Cancelada";
+
+    document.getElementById("editar-campos").style.display =
+        esProgramada ? "block" : "none";
+
+    document.getElementById("btn-guardar-edicion").style.display =
+        esProgramada ? "block" : "none";
+
+    document.getElementById("btn-cancelar-cita").style.display =
+        esProgramada ? "block" : "none";
+
+    document.getElementById("btn-atender-cita").style.display =
+        esProgramada ? "block" : "none";
+
+    document.getElementById("btn-programar-cita").style.display =
+        esCancelada ? "block" : "none";
+
+}
+
+
 function abrirEditarCita(id) {
 
     fetch(`/citas/${id}/json/`)
@@ -1055,6 +1323,12 @@ function abrirEditarCita(id) {
             "editar-duracion"
         ).value = data.duracion;
 
+        document.getElementById(
+            "editar-estado"
+        ).value = data.estado;
+
+        actualizarAccionesEdicion(data.estado);
+
         let htmlServicios = "";
 
         data.todos_servicios.forEach(servicio => {
@@ -1063,18 +1337,20 @@ function abrirEditarCita(id) {
                 data.servicios.some(
                     s => s.id == servicio.id
                 );
+            const checkboxId = `editar-servicio-${servicio.id}`;
 
             htmlServicios += `
-                <div class="form-check">
+                <div class="form-check service-option">
 
                     <input
+                        id="${checkboxId}"
                         type="checkbox"
                         class="form-check-input editar-servicio"
                         value="${servicio.id}"
                         data-duracion="${servicio.duracion}"
                         ${seleccionado ? "checked" : ""}>
 
-                    <label class="form-check-label">
+                    <label class="form-check-label" for="${checkboxId}">
 
                         ${servicio.nombre}
                         (${servicio.duracion} min)
@@ -1098,6 +1374,7 @@ function abrirEditarCita(id) {
             "editar-info-cliente"
         ).innerHTML = `
             <strong>${data.cliente}</strong><br>
+            Estado: ${data.estado}<br>
             ${data.telefono || ''}<br>
             ${data.email || ''}
         `;
@@ -1146,6 +1423,27 @@ function guardarEdicionCita() {
             )
         );
 
+    if (!fecha || !hora) {
+        alert("Debe seleccionar fecha y hora.");
+        return;
+    }
+
+    if (!validarFechaAgenda(fecha)) {
+        return;
+    }
+
+    if (!validarHorarioCierre(fecha, hora, duracion)) {
+        return;
+    }
+
+    const servicios = [];
+
+    document
+    .querySelectorAll(".editar-servicio:checked")
+    .forEach(check => {
+        servicios.push(check.value);
+    });
+
     fetch("/citas/editar-ajax/", {
 
         method: "POST",
@@ -1160,7 +1458,8 @@ function guardarEdicionCita() {
             id: id,
             fecha: fecha,
             hora: hora,
-            duracion: duracion
+            duracion: duracion,
+            servicios: servicios
 
         })
 
@@ -1191,6 +1490,97 @@ function guardarEdicionCita() {
 
     });
 
+}
+
+function cambiarEstadoCita(estado, pregunta, mensajeError) {
+
+    const id =
+        document.getElementById(
+            "editar-id"
+        ).value;
+
+    if (!confirm(pregunta)) {
+        return;
+    }
+
+    let motivo = "";
+
+    if (estado === "Cancelada") {
+        motivo = prompt("Escribe el motivo de cancelacion:");
+
+        if (!motivo || motivo.trim().length < 5) {
+            alert("El motivo debe tener al menos 5 caracteres.");
+            return;
+        }
+
+        if (motivo.trim().length > 250) {
+            alert("El motivo no puede superar 250 caracteres.");
+            return;
+        }
+    }
+
+    fetch("/citas/cambiar-estado-ajax/", {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+
+        body: JSON.stringify({
+            id: id,
+            estado: estado,
+            motivo: motivo
+        })
+
+    })
+
+    .then(response => response.json())
+
+    .then(data => {
+
+        if (data.error) {
+            alert(data.mensaje || mensajeError);
+            return;
+        }
+
+        cerrarEditarCita();
+        location.reload();
+
+    })
+
+    .catch(error => {
+
+        console.error(error);
+        alert(mensajeError);
+
+    });
+
+}
+
+function cancelarCita() {
+    cambiarEstadoCita(
+        "Cancelada",
+        "Seguro que deseas cancelar esta cita?",
+        "Error al cancelar la cita."
+    );
+}
+
+function atenderCita() {
+    cambiarEstadoCita(
+        "Atendida",
+        "Seguro que deseas marcar esta cita como atendida?",
+        "Error al marcar la cita como atendida."
+    );
+}
+
+function programarCita() {
+    cambiarEstadoCita(
+        "Programada",
+        "Seguro que deseas volver a programar esta cita?",
+        "Error al volver a programar la cita."
+    );
 }
 
 </script>
@@ -1230,16 +1620,29 @@ function guardarCita() {
         return;
     }
 
+    if (!validarFechaAgenda(fecha)) {
+        return;
+    }
+
     if (!duracion || duracion <= 0) {
         alert("La duración debe ser mayor que 0.");
         return;
     }
 
     // 👇 si NO hay cliente existente, exige datos
+    if (!validarHorarioCierre(fecha, hora, duracion)) {
+        return;
+    }
+
     if (!cliente_id) {
 
         if (!nombre || !apellido || !telefono || !sexo) {
             alert("Nombre, apellido, telefono y sexo son obligatorios.");
+            return;
+        }
+
+        if (!nombrePersonaValido(nombre) || !nombrePersonaValido(apellido)) {
+            alert("Nombre y apellido deben contener solo letras y tener un formato valido.");
             return;
         }
 

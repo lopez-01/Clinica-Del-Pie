@@ -28,39 +28,47 @@
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-                    {% if request.user.personal.administrativo_set.exists %}
+                    {% if request.user.is_authenticated %}
+                        {% if request.user.personal.administrativo_set.exists %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'administrativo' %}">
+                                    Panel Administrativo
+                                </a>
+                            </li>
+
+                            <!--
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'iniciar_cita' %}">
+                                    Nuevo Cliente
+                                </a>
+                            </li>
+                            -->
+
+                        {% endif %}
+
+                        {% if request.user.personal.operativo_set.exists %}
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.path == '/operativo/' %}active{% endif %}" href="{% url 'operativo' %}">
+                                    Panel Operativo
+                                </a>
+                            </li>
+                        {% endif %}
+
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'administrativo' %}">
-                                Panel Administrativo
-                            </a>
+                            <span class="app-user-pill">
+                                <strong>{{ request.user.personal.nombre }} {{ request.user.personal.apellido }}</strong>
+                            </span>
                         </li>
 
-                        <!--
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'iniciar_cita' %}">
-                                Nuevo Cliente
-                            </a>
+                            <form action="{% url 'logout' %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-light btn-sm app-logout">
+                                    Cerrar sesion
+                                </button>
+                            </form>
                         </li>
-                        -->
-                        
                     {% endif %}
-
-                    {% if request.user.personal.operativo_set.exists %}
-                        <li class="nav-item">
-                            <a class="nav-link {% if request.path == '/operativo/' %}active{% endif %}" href="{% url 'operativo' %}">
-                                Panel Operativo
-                            </a>
-                        </li>
-                    {% endif %}
-
-                    <li class="nav-item">
-                        <form action="{% url 'logout' %}" method="post" class="d-inline">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-outline-light btn-sm app-logout">
-                                Cerrar sesion
-                            </button>
-                        </form>
-                    </li>
                 </ul>
             </div>
         </div>

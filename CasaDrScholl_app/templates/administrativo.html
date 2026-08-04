@@ -22,12 +22,11 @@
             <small>Roles, datos y detalle de operativos.</small>
         </a>
 
-        <button class="action-card action-card-coral text-start" type="button" data-bs-toggle="collapse"
-                data-bs-target="#reportesFinancieros">
-            <span>Reportes</span>
-            <strong>Finanzas</strong>
-            <small>Revisa indicadores financieros rapidos.</small>
-        </button>
+        <a href="{% url 'finanzas_admin' %}" class="action-card action-card-coral">
+            <span>Finanzas</span>
+            <strong>Control financiero</strong>
+            <small>Registra gastos mensuales y revisa balance.</small>
+        </a>
 
         <a href="{% url 'inbox' %}" class="action-card action-card-dark">
             <span>Solicitudes</span>
@@ -40,69 +39,68 @@
             <strong>Facturas y pagos</strong>
             <small>Control de estados y cobros.</small>
         </a>
+
+        <a href="{% url 'clientes_cuentas_admin' %}" class="action-card action-card-amber">
+            <span>Historial</span>
+            <strong>Historial Administrativo</strong>
+            <small>Clientes, citas, facturas y saldos.</small>
+        </a>
     </div>
 
-    <div class="collapse mt-4" id="reportesFinancieros">
-        <h3 class="mb-3">Reportes financieros</h3>
-        <div class="row g-3">
-            <div class="col-md-4">
-                <div class="metric-card">
-                    <span>Gastos de luz</span>
-                    <strong>C$ 3,200</strong>
-                    <small>Ultimo mes</small>
+    {% if alertas_admin %}
+        <div class="row g-3 mb-4">
+            {% for alerta in alertas_admin %}
+                <div class="col-md-4">
+                    <div class="alert alert-{{ alerta.tipo }} shadow-sm h-100 mb-0">
+                        <strong>{{ alerta.titulo }}</strong><br>
+                        {{ alerta.mensaje }}
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="metric-card">
-                    <span>Ingresos mensuales</span>
-                    <strong>C$ 25,000</strong>
-                    <small>Ultimo mes</small>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="metric-card">
-                    <span>Materiales</span>
-                    <strong>C$ 7,800</strong>
-                    <small>Ultimo mes</small>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="metric-card">
-                    <span>Salarios</span>
-                    <strong>C$ 10,500</strong>
-                    <small>Ultimo mes</small>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="metric-card">
-                    <span>Otros gastos</span>
-                    <strong>C$ 1,200</strong>
-                    <small>Ultimo mes</small>
-                </div>
-            </div>
+            {% endfor %}
         </div>
-    </div>
+    {% endif %}
 
     <div class="row g-3 text-center mt-4">
         <div class="col-md-4">
             <div class="metric-card">
                 <span>Empleados</span>
-                <strong>12</strong>
+                <strong>{{ total_empleados }}</strong>
                 <small>Equipo registrado</small>
             </div>
         </div>
         <div class="col-md-4">
             <div class="metric-card">
                 <span>Servicios</span>
-                <strong>8</strong>
+                <strong>{{ total_servicios }}</strong>
                 <small>Disponibles para citas</small>
             </div>
         </div>
         <div class="col-md-4">
             <div class="metric-card">
-                <span>Reportes</span>
-                <strong>5</strong>
-                <small>Indicadores visibles</small>
+                <span>Ingresos</span>
+                <strong>C$ {{ ingresos_mes|floatformat:"2u" }}</strong>
+                <small>Facturas pagadas del mes</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="metric-card">
+                <span>Gastos</span>
+                <strong>C$ {{ gastos_mes|floatformat:"2u" }}</strong>
+                <small>Incluye salarios calculados</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="metric-card">
+                <span>Salarios</span>
+                <strong>C$ {{ salarios_operativos|floatformat:"2u" }}</strong>
+                <small>Comisiones del mes</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="metric-card">
+                <span>Ganancia estimada</span>
+                <strong>C$ {{ balance_mes|floatformat:"2u" }}</strong>
+                <small>Ingresos menos gastos</small>
             </div>
         </div>
     </div>

@@ -32,16 +32,28 @@ Detalle de Cita
 
             {% else %}
 
-                <a href="{% url 'generar_factura' cita.id_cita %}"
-                class="btn btn-success">
-                    Generar Factura
-                </a>
+                {% if cita.estado.nombre_estado == "Cancelada" %}
+                    <span class="badge bg-danger fs-6">
+                        Factura bloqueada
+                    </span>
+                {% else %}
+                    <a href="{% url 'generar_factura' cita.id_cita %}"
+                    class="btn btn-success">
+                        Generar Factura
+                    </a>
+                {% endif %}
 
             {% endif %}
 
         </div>
 
         <div class="card-body">
+
+            {% if cita.estado.nombre_estado == "Cancelada" %}
+                <div class="alert alert-warning">
+                    Esta cita esta cancelada, por eso no se puede generar ni pagar una factura.
+                </div>
+            {% endif %}
 
             <div class="row">
 

@@ -221,7 +221,7 @@
             </div>
             <div class="col-md-6 col-lg-5 col-xl-3 wow fadeInRight" data-wow-delay=".2s">
               <!-- Team Classic-->
-              <article class="team-classic team-classic-lg"><a class="team-classic-figure" href="#"><img src="{% static 'imagenes/poto.png' %}" alt="" width="420" height="424"/></a>
+              <article class="team-classic team-classic-lg"><a class="team-classic-figure" href="#"><img src="{% static 'imagenes/trabajador-4.jpeg' %}" alt="" width="420" height="424"/></a>
                 <div class="team-classic-caption">
                   <h4 class="team-classic-name"><a href="#">Candida Perez</a></h4>
                   <p class="team-classic-status">Doctora</p>
@@ -280,7 +280,7 @@
               </div>
             </div>
             <div class="col-lg-6 text-center wow fadeInUp" data-wow-delay=".1s">
-              <div class="owl-carousel owl-style-1" data-items="2" data-stage-padding="0" data-loop="true" data-margin="0" data-mouse-drag="true" data-autoplay="true"><a class="box-device" href="#"><img src="{% static 'imagenes/samuel.png' %}" alt="" width="313" height="580"/></a><a class="box-device" href="#"><img src="{% static 'imagenes/vladimir.png' %}" alt="" width="313" height="580"/></a><a class="box-device" href="#"><img src="{% static 'imagenes/isaac.png' %}" alt="" width="313" height="580"/></a><a class="box-device" href="#"><img src="{% static 'imagenes/mattew.png' %}" alt="" width="313" height="580"/></a></div>
+              <div class="owl-carousel owl-style-1" data-items="2" data-stage-padding="0" data-loop="true" data-margin="0" data-mouse-drag="true" data-autoplay="true"><a class="box-device" href="#"><img src="{% static 'imagenes/trabajador-3.jpeg' %}" alt="" width="313" height="580"/></a><a class="box-device" href="#"><img src="{% static 'imagenes/vladimir.png' %}" alt="" width="313" height="580"/></a><a class="box-device" href="#"><img src="{% static 'imagenes/trabajadora-2.jpeg' %}" alt="" width="313" height="580"/></a><a class="box-device" href="#"><img src="{% static 'imagenes/trabajador-1.jpeg' %}" alt="" width="313" height="580"/></a></div>
             </div>
           </div>
         </div>
@@ -317,7 +317,7 @@
                 <div class="box-contacts-body">
                   <div class="box-contacts-icon fl-bigmug-line-chat55"></div>
                   <div class="box-contacts-decor"></div>
-                  <p class="box-contacts-link"><a href="mailto:#">Cristianlopez@gmail.com</a></p>
+                  <p class="box-contacts-link"><a href="mailto:#">ClinicaDrScholl@gmail.com</a></p>
                   
                 </div>
               </article>
@@ -386,7 +386,14 @@
       <!-- Propuesta -->
       <div class="col-12">
         <div class="form-wrap">
-          <textarea class="form-input textarea-lg" name="propuesta_de_dia" placeholder="Servicio, fecha u horario preferido" required></textarea>
+          <textarea
+            class="form-input textarea-lg"
+            name="propuesta_de_dia"
+            placeholder="Servicio, fecha u horario preferido"
+            minlength="10"
+            maxlength="250"
+            required></textarea>
+          <small class="text-muted">Escribe entre 10 y 250 caracteres.</small>
         </div>
       </div>
 
