@@ -1,49 +1,57 @@
 {% extends 'base.html' %}
 
-{% block title %}Pagar Factura{% endblock %}
+{% block title %}Registrar pago{% endblock %}
 
 {% block content %}
+<div class="container py-4">
+    <div class="mb-3 d-flex gap-2 flex-wrap">
+        <a href="{% url 'ver_factura' factura.id_factura %}" class="btn btn-outline-secondary btn-back" data-history-back>← Volver a la factura</a>
+        <a href="{% url 'listar_pagos' %}" class="btn btn-outline-primary">Pagos registrados</a>
+    </div>
 
-<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header"><h1 class="h4 mb-0">Confirmar pago</h1></div>
+                <div class="card-body">
+                    <p class="text-muted">Revisa la información de la factura. Cada cita se cobra en un solo pago por el total indicado; no se registran abonos ni pagos adicionales. La fecha se asignará automáticamente al confirmar.</p>
 
-    <h3>Factura #{{ factura.id_factura }}</h3>
+                    <dl class="row mb-4">
+                        <dt class="col-sm-5">Factura</dt><dd class="col-sm-7">#{{ factura.id_factura }}</dd>
+                        <dt class="col-sm-5">Paciente</dt><dd class="col-sm-7">{{ factura.cita.cliente.nombre }} {{ factura.cita.cliente.apellido }}</dd>
+                        <dt class="col-sm-5">Fecha de emisión</dt><dd class="col-sm-7">{{ factura.fecha_factura|date:'d/m/Y'|default:'No definida' }}</dd>
+                        <dt class="col-sm-5">Fecha del pago</dt><dd class="col-sm-7">Se registrará al confirmar</dd>
+                    </dl>
 
-    <p>Total: C$ {{ factura.total }}</p>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm align-middle">
+                            <thead><tr><th>Servicio</th><th class="text-end">Costo</th></tr></thead>
+                            <tbody>
+                                {% for servicio in servicios %}
+                                    <tr><td>{{ servicio.nombre }}</td><td class="text-end">C$ {{ servicio.costo|floatformat:2 }}</td></tr>
+                                {% empty %}
+                                    <tr><td colspan="2" class="text-muted">La factura no tiene servicios asociados.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot><tr><th>Total a pagar</th><th class="text-end">C$ {{ factura.total|floatformat:2 }}</th></tr></tfoot>
+                        </table>
+                    </div>
 
-    <form method="POST">
-        {% csrf_token %}
-
-        <div class="mb-3">
-
-            <label class="form-label">
-                Método de Pago
-            </label>
-
-            <select name="metodo_pago" class="form-select" required>
-
-                <option value="">Seleccione...</option>
-
-                {% for metodo in metodos %}
-                    <option value="{{ metodo.id_metodopago }}">
-                        {{ metodo.nombre }}
-                    </option>
-                {% endfor %}
-
-            </select>
-
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ form.metodo_pago.id_for_label }}">{{ form.metodo_pago.label }}</label>
+                            {{ form.metodo_pago }}
+                            {% for error in form.metodo_pago.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">Registrar pago total</button>
+                            <a href="{% url 'ver_factura' factura.id_factura %}" class="btn btn-outline-secondary" data-history-back>Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-
-        <button class="btn btn-success">
-            Confirmar Pago
-        </button>
-
-        <a href="{% url 'ver_factura' factura.id_factura %}"
-           class="btn btn-secondary">
-            Cancelar
-        </a>
-
-    </form>
-
+    </div>
 </div>
-
 {% endblock %}

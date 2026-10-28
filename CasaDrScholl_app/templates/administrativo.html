@@ -1,108 +1,182 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Administrativo{% endblock %}
+{% block title %}Inicio administrativo{% endblock %}
+
+{% block css %}
+<style>
+    .admin-home { max-width: 1320px; }
+    .admin-layout { margin: 28px 0; }
+    .admin-sidebar { background: #e3eeec; border-right: 1px solid #a9c8c5; box-shadow: 8px 0 22px rgba(18,50,62,.08); bottom: 0; left: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 13px; position: fixed; top: 78px; width: 250px; z-index: 1020; }
+    .admin-sidebar-kicker { color: #0f8f9f; display: block; font-size: .7rem; font-weight: 800; letter-spacing: .09em; margin: 0 0 4px 5px; text-transform: uppercase; }
+    .admin-sidebar-title { color: #173e4b; font-size: 1rem; font-weight: 800; margin: 0 0 13px 5px; }
+    .admin-nav { display: grid; gap: 7px; }
+    .admin-nav-group { color: #0f8f9f; font-size: .69rem; font-weight: 850; letter-spacing: .08em; margin: 12px 5px 1px; text-transform: uppercase; }
+    .admin-nav-link { align-items: center; background: #f1f7f5; border: 1px solid #c3d8d4; border-radius: 10px; color: #244e58; display: flex; gap: 10px; min-height: 56px; padding: 9px; text-decoration: none; transition: background .16s ease, border-color .16s ease, transform .16s ease; }
+    .admin-nav-link:hover, .admin-nav-link:focus-visible { background: #d6eae6; border-color: #0f8f9f; color: #123d4b; transform: translateX(2px); }
+    .admin-nav-icon { align-items: center; background: #c6e0db; border-radius: 9px; color: #0c7380; display: inline-flex; flex: 0 0 36px; font-size: .76rem; font-weight: 850; height: 36px; justify-content: center; }
+    .admin-nav-link strong, .admin-nav-link small { display: block; }
+    .admin-nav-link strong { font-size: .86rem; line-height: 1.2; }
+    .admin-nav-link small { color: #66818a; font-size: .72rem; margin-top: 3px; }
+    .admin-nav-link-primary { background: linear-gradient(110deg, #0b7785, #0f8f9f); border-color: #0b7785; color: #fff; }
+    .admin-nav-link-primary .admin-nav-icon { background: rgba(255,255,255,.18); color: #fff; }
+    .admin-nav-link-primary small { color: rgba(255,255,255,.8); }
+    .admin-nav-link-primary:hover, .admin-nav-link-primary:focus-visible { background: #075f6b; border-color: #075f6b; color: #fff; }
+    .admin-content { margin-left: 272px; min-width: 0; }
+    .admin-welcome { align-items: center; background: linear-gradient(120deg, #e9f8f7, #fff7e9); border: 1px solid #d3e7e5; border-radius: 14px; display: flex; gap: 24px; justify-content: space-between; margin: 0 0 22px; padding: clamp(22px, 4vw, 34px); }
+    .admin-welcome h1 { color: #123d4b; font-size: clamp(1.8rem, 3vw, 2.45rem); font-weight: 800; margin: 0 0 8px; }
+    .admin-welcome p { color: #52717a; margin: 0; }
+    .admin-date { color: #0f8f9f; font-size: .82rem; font-weight: 800; letter-spacing: .08em; margin-bottom: 8px !important; text-transform: uppercase; }
+    .admin-section { margin: 28px 0; }
+    .admin-section-heading { align-items: end; display: flex; justify-content: space-between; margin-bottom: 12px; }
+    .admin-section-heading h2 { color: #173e4b; font-size: 1.2rem; font-weight: 800; margin: 0; }
+    .admin-section-heading p { color: #66818a; font-size: .9rem; margin: 4px 0 0; }
+    .admin-overview { display: grid; gap: 14px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .admin-stat { background: #e3eeec; border: 1px solid #a9c8c5; border-left: 5px solid #087f8b; border-radius: 12px; box-shadow: 0 10px 24px rgba(18,50,62,.1); min-height: 120px; padding: 18px; }
+    .admin-stat-teal { background: #bfe1dc; border-color: #83bdb7; border-left-color: #087f8b; }
+    .admin-stat-blue { background: #cbdbea; border-color: #9bb5ca; border-left-color: #3f7397; }
+    .admin-stat-amber { background: #f3dda9; border-color: #d5b56d; border-left-color: #b77b18; }
+    .admin-stat-coral { background: #f2c9bd; border-color: #d99b8c; border-left-color: #c2553d; }
+    .admin-stat span { color: #405e67; display: block; font-size: .88rem; font-weight: 750; }
+    .admin-stat strong { color: #123d4b; display: block; font-size: 2rem; line-height: 1.2; margin: 8px 0 2px; }
+    .admin-stat a { color: #0b8390; font-size: .84rem; font-weight: 700; text-decoration: none; }
+    .admin-stat a:hover { text-decoration: underline; }
+    .admin-work-grid { display: grid; gap: 18px; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .85fr); }
+    .admin-panel { background: #e3eeec; border: 1px solid #a9c8c5; border-radius: 12px; box-shadow: 0 10px 26px rgba(18,50,62,.1); overflow: hidden; }
+    .admin-panel-appointments { display: flex; flex-direction: column; height: 410px; min-height: 410px; }
+    .admin-panel-title { align-items: center; background: linear-gradient(100deg, #bfdfdb, #f2dfb7); border-bottom: 1px solid #a9c8c5; display: flex; justify-content: space-between; padding: 17px 20px; }
+    .admin-panel-title h3 { color: #173e4b; font-size: 1rem; font-weight: 800; margin: 0; }
+    .admin-panel-title a { color: #0b8390; font-size: .84rem; font-weight: 700; text-decoration: none; }
+    .admin-appointments-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+    .admin-appointments-scroll:focus-visible { outline: 3px solid rgba(15,143,159,.35); outline-offset: -3px; }
+    .admin-appointment { align-items: center; background: #f4f8f7; border-bottom: 1px solid #cbdcda; display: grid; gap: 14px; grid-template-columns: 70px minmax(0,1fr) auto; padding: 13px 20px; }
+    a.admin-appointment { color: inherit; text-decoration: none; transition: background .15s ease; }
+    a.admin-appointment:hover, a.admin-appointment:focus-visible { background: #cfe6e2; outline: 2px solid #0f8f9f; outline-offset: -2px; }
+    .admin-appointment:nth-child(even) { background: #dcebe8; }
+    .admin-appointment:last-child { border-bottom: 0; }
+    .admin-appointment time { color: #0c7785; font-size: .9rem; font-weight: 800; }
+    .admin-appointment strong { color: #183d49; display: block; font-size: .93rem; }
+    .admin-appointment small { color: #66818a; }
+    .admin-status { background: #e9f7f1; border-radius: 99px; color: #247351; font-size: .75rem; font-weight: 750; padding: 5px 9px; white-space: nowrap; }
+    .admin-status-cancelada { background: #fff0ed; color: #a64232; }
+    .admin-status-pendiente { background: #fff2d8; color: #865400; }
+    .admin-status-atendida { background: #eaf0f4; color: #526a76; }
+    .admin-empty { color: #66818a; padding: 28px 20px; text-align: center; }
+    .admin-links { display: grid; gap: 10px; padding: 14px; }
+    .admin-link { align-items: center; background: #f0f6f5; border: 1px solid #b3cdca; border-radius: 9px; color: #183d49; display: flex; gap: 12px; padding: 12px; text-decoration: none; transition: background .16s ease, border-color .16s ease, transform .16s ease; }
+    .admin-link:hover { background: #d4e9e6; border-color: #8abcb7; color: #123d4b; transform: translateY(-1px); }
+    .admin-link-icon { align-items: center; background: #c2e3df; border-radius: 8px; color: #075d67; display: inline-flex; flex: 0 0 38px; font-size: .85rem; font-weight: 850; height: 38px; justify-content: center; }
+    .admin-link strong, .admin-link small { display: block; }
+    .admin-link strong { font-size: .91rem; }
+    .admin-link small { color: #6b858c; font-size: .78rem; margin-top: 2px; }
+    .admin-finance { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .admin-finance .admin-stat { min-height: 104px; padding: 15px 17px; }
+    .admin-finance .admin-stat strong { font-size: 1.35rem; }
+    .admin-alerts { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); margin-top: 18px; }
+    .admin-task-list { display: grid; gap: 10px; padding: 14px; }
+    .admin-task { align-items: center; background: #f4f8f7; border: 1px solid #cbdcda; border-radius: 9px; display: flex; gap: 12px; justify-content: space-between; padding: 14px; }
+    .admin-task strong, .admin-task small { display: block; }
+    .admin-task strong { color: #183d49; font-size: .9rem; }
+    .admin-task small { color: #66818a; margin-top: 3px; }
+    .admin-task-count { align-items: center; background: #f3dda9; border-radius: 999px; color: #744b08; display: inline-flex; flex: 0 0 34px; font-size: .82rem; font-weight: 800; height: 34px; justify-content: center; }
+    @media (max-width: 1199px) { .admin-sidebar { border: 1px solid #a9c8c5; border-radius: 14px; bottom: auto; left: auto; margin-bottom: 18px; overflow: visible; position: static; top: auto; width: auto; } .admin-content { margin-left: 0; } .admin-nav { grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); } }
+    @media (max-width: 900px) { .admin-overview, .admin-finance { grid-template-columns: repeat(2, minmax(0,1fr)); } .admin-work-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 600px) { .admin-welcome { align-items: flex-start; flex-direction: column; } .admin-overview, .admin-finance { grid-template-columns: 1fr 1fr; } .admin-panel-appointments { height: 360px; min-height: 360px; } .admin-appointment { gap: 8px; grid-template-columns: 58px minmax(0,1fr); padding: 12px; } .admin-status { grid-column: 2; justify-self: start; } }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container">
-    <section class="dashboard-hero">
+<div class="container admin-home">
+    <div class="admin-layout">
+        <aside class="admin-sidebar" aria-label="Navegación administrativa">
+            <span class="admin-sidebar-kicker">Panel administrativo</span>
+            <h2 class="admin-sidebar-title">Módulos</h2>
+            <nav class="admin-nav">
+                <span class="admin-nav-group">Atención diaria</span>
+                <a class="admin-nav-link admin-nav-link-primary" href="{% url 'calendar' %}?general=1"><span class="admin-nav-icon">AG</span><span><strong>Agenda y citas</strong><small>Consultar o registrar citas</small></span></a>
+                <a class="admin-nav-link" href="{% url 'inbox' %}"><span class="admin-nav-icon">SW</span><span><strong>Solicitudes web</strong><small>Revisar propuestas</small></span></a>
+                <span class="admin-nav-group">Pacientes</span>
+                <a class="admin-nav-link" href="{% url 'pacientes_admin' %}"><span class="admin-nav-icon">PA</span><span><strong>Pacientes</strong><small>Datos e historial</small></span></a>
+                <a class="admin-nav-link" href="{% url 'clientes_cuentas_admin' %}"><span class="admin-nav-icon">HI</span><span><strong>Historial administrativo</strong><small>Movimientos y saldos</small></span></a>
+                <span class="admin-nav-group">Administración</span>
+                <a class="admin-nav-link" href="{% url 'gestionar_empleados' %}"><span class="admin-nav-icon">PE</span><span><strong>Personal</strong><small>Empleados y cuentas</small></span></a>
+                <a class="admin-nav-link" href="{% url 'gestionar_comisiones' %}"><span class="admin-nav-icon">CO</span><span><strong>Comisiones</strong><small>Montos por período</small></span></a>
+                <span class="admin-nav-group">Finanzas</span>
+                <a class="admin-nav-link" href="{% url 'listar_facturas' %}"><span class="admin-nav-icon">FA</span><span><strong>Facturación y pagos</strong><small>Estados y cobros</small></span></a>
+                <a class="admin-nav-link" href="{% url 'finanzas_admin' %}"><span class="admin-nav-icon">FI</span><span><strong>Finanzas</strong><small>Gastos y balance</small></span></a>
+            </nav>
+        </aside>
+
+        <main class="admin-content">
+    <section class="admin-welcome">
         <div>
-            <p class="section-kicker">Panel administrativo</p>
-            <h2>Gestion de la clinica</h2>
-            <p>Accede rapido a empleados, solicitudes web, facturacion y reportes de la operacion diaria.</p>
+            <p class="admin-date">Panel administrativo · {{ hoy|date:"d/m/Y" }}</p>
+            <h1>¿Qué necesita atender hoy?</h1>
+            <p>Revisa la agenda y resuelve primero las solicitudes y cobros pendientes.</p>
         </div>
-        <a href="{% url 'seleccionar_operativo' %}" class="btn btn-primary">
-            Registrar nueva cita
-        </a>
     </section>
 
-    <div class="action-grid mb-4">
-        <a href="{% url 'gestionar_empleados' %}" class="action-card action-card-teal">
-            <span>Empleados</span>
-            <strong>Gestionar equipo</strong>
-            <small>Roles, datos y detalle de operativos.</small>
-        </a>
-
-        <a href="{% url 'finanzas_admin' %}" class="action-card action-card-coral">
-            <span>Finanzas</span>
-            <strong>Control financiero</strong>
-            <small>Registra gastos mensuales y revisa balance.</small>
-        </a>
-
-        <a href="{% url 'inbox' %}" class="action-card action-card-dark">
-            <span>Solicitudes</span>
-            <strong>Inbox web</strong>
-            <small>Propuestas de cita pendientes.</small>
-        </a>
-
-        <a href="{% url 'listar_facturas' %}" class="action-card action-card-green">
-            <span>Facturacion</span>
-            <strong>Facturas y pagos</strong>
-            <small>Control de estados y cobros.</small>
-        </a>
-
-        <a href="{% url 'clientes_cuentas_admin' %}" class="action-card action-card-amber">
-            <span>Historial</span>
-            <strong>Historial Administrativo</strong>
-            <small>Clientes, citas, facturas y saldos.</small>
-        </a>
-    </div>
-
     {% if alertas_admin %}
-        <div class="row g-3 mb-4">
-            {% for alerta in alertas_admin %}
-                <div class="col-md-4">
-                    <div class="alert alert-{{ alerta.tipo }} shadow-sm h-100 mb-0">
-                        <strong>{{ alerta.titulo }}</strong><br>
-                        {{ alerta.mensaje }}
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
+        <section class="admin-alerts mb-4" aria-label="Avisos del sistema">
+            {% for alerta in alertas_admin %}<div class="alert alert-{{ alerta.tipo }} shadow-sm mb-0"><strong>{{ alerta.titulo }}</strong><br>{{ alerta.mensaje }}</div>{% endfor %}
+        </section>
     {% endif %}
 
-    <div class="row g-3 text-center mt-4">
-        <div class="col-md-4">
-            <div class="metric-card">
-                <span>Empleados</span>
-                <strong>{{ total_empleados }}</strong>
-                <small>Equipo registrado</small>
+    <section class="admin-section" aria-labelledby="resumen-hoy">
+        <div class="admin-section-heading">
+            <div><h2 id="resumen-hoy">Resumen de hoy</h2><p>Indicadores para empezar la jornada.</p></div>
+        </div>
+        <div class="admin-overview">
+            <article class="admin-stat admin-stat-teal"><span>Citas por atender hoy</span><strong>{{ citas_por_atender_hoy }}</strong><a href="{% url 'calendar' %}?general=1">Abrir agenda</a></article>
+            <article class="admin-stat admin-stat-amber"><span>Solicitudes web pendientes</span><strong>{{ solicitudes_pendientes }}</strong><a href="{% url 'inbox' %}">Revisar solicitudes</a></article>
+            <article class="admin-stat admin-stat-coral"><span>Facturas pendientes</span><strong>{{ facturas_pendientes }}</strong><a href="{% url 'listar_facturas' %}">Ver facturas</a></article>
+            <article class="admin-stat admin-stat-blue"><span>Citas canceladas · 7 días</span><strong>{{ citas_canceladas_recientes }}</strong><a href="{% url 'calendar' %}?general=1">Consultar agenda</a></article>
+        </div>
+    </section>
+
+    <section class="admin-section admin-work-grid" aria-label="Trabajo diario">
+        <div class="admin-panel admin-panel-appointments">
+            <div class="admin-panel-title"><h3 id="citas-hoy-titulo">Agenda de hoy · {{ total_citas_hoy }}</h3></div>
+            <div class="admin-appointments-scroll" role="region" aria-labelledby="citas-hoy-titulo" tabindex="0">
+                {% for cita in citas_hoy %}
+                    <a class="admin-appointment" href="{% url 'detalle_cita' cita.id_cita %}" aria-label="Ver cita de {{ cita.cliente.nombre }} {{ cita.cliente.apellido }} a las {{ cita.fechahora|date:'g:i A' }}">
+                        <time>{{ cita.fechahora|date:"g:i A" }}</time>
+                        <div><strong>{{ cita.cliente.nombre }} {{ cita.cliente.apellido }}</strong><small>{% if cita.operativo %}{{ cita.operativo.personal.nombre }} {{ cita.operativo.personal.apellido }}{% else %}Personal por asignar{% endif %}</small></div>
+                        <span class="admin-status{% if cita.estado.nombre_estado == 'Cancelada' %} admin-status-cancelada{% elif cita.estado.nombre_estado == 'Pendiente' %} admin-status-pendiente{% elif cita.estado.nombre_estado == 'Atendida' %} admin-status-atendida{% endif %}">{% if cita.estado %}{{ cita.estado.nombre_estado }}{% else %}Programada{% endif %}</span>
+                    </a>
+                {% empty %}
+                    <div class="admin-empty">No hay citas registradas para hoy.<br><a href="{% url 'calendar' %}?general=1">Registrar una cita</a></div>
+                {% endfor %}
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="metric-card">
-                <span>Servicios</span>
-                <strong>{{ total_servicios }}</strong>
-                <small>Disponibles para citas</small>
+
+        <aside class="admin-panel" aria-labelledby="pendientes-titulo">
+            <div class="admin-panel-title"><h3 id="pendientes-titulo">Pendientes por resolver</h3></div>
+            <div class="admin-task-list">
+                <a class="admin-task text-decoration-none" href="{% url 'inbox' %}">
+                    <span><strong>Solicitudes web</strong><small>Propuestas de cita por revisar</small></span>
+                    <span class="admin-task-count">{{ solicitudes_pendientes }}</span>
+                </a>
+                <a class="admin-task text-decoration-none" href="{% url 'listar_facturas' %}?estado=Pendiente">
+                    <span><strong>Facturas pendientes</strong><small>Pagos que requieren seguimiento</small></span>
+                    <span class="admin-task-count">{{ facturas_pendientes }}</span>
+                </a>
             </div>
+        </aside>
+    </section>
+
+    <section class="admin-section" aria-labelledby="resumen-financiero">
+        <div class="admin-section-heading"><div><h2 id="resumen-financiero">Resumen financiero del mes</h2><p>Consulta rápida; el detalle está en Control financiero.</p></div><a href="{% url 'finanzas_admin' %}">Abrir finanzas →</a></div>
+        <div class="admin-finance">
+            <article class="admin-stat admin-stat-teal"><span>Ingresos brutos</span><strong>C$ {{ ingresos_mes|floatformat:"2u" }}</strong></article>
+            <article class="admin-stat admin-stat-amber"><span>Gastos</span><strong>C$ {{ gastos_mes|floatformat:"2u" }}</strong></article>
+            <article class="admin-stat admin-stat-blue"><span>Comisiones</span><strong>C$ {{ salarios_operativos|floatformat:"2u" }}</strong></article>
+            <article class="admin-stat admin-stat-coral"><span>Resultado neto operativo</span><strong>C$ {{ balance_mes|floatformat:"2u" }}</strong></article>
         </div>
-        <div class="col-md-4">
-            <div class="metric-card">
-                <span>Ingresos</span>
-                <strong>C$ {{ ingresos_mes|floatformat:"2u" }}</strong>
-                <small>Facturas pagadas del mes</small>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="metric-card">
-                <span>Gastos</span>
-                <strong>C$ {{ gastos_mes|floatformat:"2u" }}</strong>
-                <small>Incluye salarios calculados</small>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="metric-card">
-                <span>Salarios</span>
-                <strong>C$ {{ salarios_operativos|floatformat:"2u" }}</strong>
-                <small>Comisiones del mes</small>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="metric-card">
-                <span>Ganancia estimada</span>
-                <strong>C$ {{ balance_mes|floatformat:"2u" }}</strong>
-                <small>Ingresos menos gastos</small>
-            </div>
-        </div>
+    </section>
+
+        </main>
     </div>
 </div>
 {% endblock %}
+
+{% block footer %}{% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Pago #{{ pago.id_pago }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-3 d-flex gap-2 flex-wrap">
+        <a href="{% url 'listar_pagos' %}" class="btn btn-outline-secondary btn-back" data-history-back>← Volver a pagos</a>
+        <a href="{% url 'ver_factura' pago.factura.id_factura %}" class="btn btn-outline-primary">Ver factura #{{ pago.factura.id_factura }}</a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header"><h1 class="h3 mb-0">Comprobante de pago #{{ pago.id_pago }}</h1></div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Factura</dt><dd class="col-sm-7"><a href="{% url 'ver_factura' pago.factura.id_factura %}">#{{ pago.factura.id_factura }}</a></dd>
+                        <dt class="col-sm-5">Paciente</dt><dd class="col-sm-7">{{ pago.factura.cita.cliente.nombre }} {{ pago.factura.cita.cliente.apellido }}</dd>
+                        <dt class="col-sm-5">Fecha del pago</dt><dd class="col-sm-7">{{ pago.fecha_pago|date:'d/m/Y' }}</dd>
+                        <dt class="col-sm-5">Monto del pago</dt><dd class="col-sm-7"><strong>C$ {{ pago.monto|floatformat:2 }}</strong></dd>
+                        <dt class="col-sm-5">Método de pago</dt><dd class="col-sm-7">{{ pago.metodo_pago.nombre }}</dd>
+                        <dt class="col-sm-5">Total factura</dt><dd class="col-sm-7">C$ {{ pago.factura.total|floatformat:2 }}</dd>
+                        <dt class="col-sm-5">Estado de factura</dt><dd class="col-sm-7">{{ pago.factura.estado_pago.nombre|default:'Sin estado' }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

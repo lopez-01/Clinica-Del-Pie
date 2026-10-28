@@ -21,12 +21,13 @@ body {
 
 /* Tarjetas */
 .card {
-    background: white;
+    background: #e1efec;
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 20px;
     box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-    border-left: 6px solid #4CAF50;
+    border: 1px solid #b2cfca;
+    border-left: 6px solid #0f8f9f;
     position: relative;
 }
 
@@ -35,7 +36,7 @@ body {
     font-size: 20px;
     font-weight: bold;
     margin-bottom: 10px;
-    color: #4CAF50;
+    color: #0b6271;
 }
 
 /* Items dentro de tarjeta */
@@ -54,16 +55,16 @@ body {
 .actions a {
     margin-left: 10px;
     text-decoration: none;
-    color: #007BFF;
+    color: #0b6271;
     font-weight: bold;
-    border: 1px solid #007BFF;
+    border: 1px solid #0f8f9f;
     padding: 4px 8px;
     border-radius: 5px;
     transition: background-color 0.2s;
 }
 
 .actions a:hover {
-    background-color: #007BFF;
+    background-color: #0f8f9f;
     color: white;
 }
 
@@ -73,7 +74,7 @@ body {
     width: max-content;
     margin: 0 auto 20px auto;
     padding: 10px 20px;
-    background-color: #4CAF50;
+    background-color: #0f8f9f;
     color: white;
     text-decoration: none;
     border-radius: 8px;
@@ -81,7 +82,7 @@ body {
 }
 
 .add-client:hover {
-    background-color: #45a049;
+    background-color: #0b6271;
 }
 
 /* Mensaje sin clientes */

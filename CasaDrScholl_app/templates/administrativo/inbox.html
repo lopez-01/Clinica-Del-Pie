@@ -1,61 +1,72 @@
 {% extends 'base.html' %}
-{% block title %}Inbox{% endblock %}
+{% block title %}Solicitudes web{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<style>
+    .requests-page { max-width: 1240px; }
+    .requests-hero { align-items: end; background: linear-gradient(120deg,#e8f6f3,#fff4e7); border: 1px solid #c9e0dc; border-radius: 14px; display:flex; justify-content:space-between; gap:20px; margin: 28px 0 22px; padding: clamp(22px,4vw,34px); }
+    .requests-hero h1 { color:#123d4b; font-size:clamp(1.7rem,3vw,2.3rem); font-weight:800; margin:0 0 7px; }
+    .requests-hero p { color:#58747c; margin:0; }
+    .requests-count { background:#f3dda9; border-radius:999px; color:#744b08; font-size:1rem; font-weight:800; min-width:52px; padding:12px 16px; text-align:center; }
+    .request-card { background:#fff; border:1px solid #d2e0de; border-left:5px solid #d19a36; border-radius:12px; box-shadow:0 10px 26px rgba(18,50,62,.08); margin-bottom:14px; padding:20px; }
+    .request-card-head { align-items:start; display:flex; flex-wrap:wrap; gap:12px; justify-content:space-between; }
+    .request-card h2 { color:#173e4b; font-size:1.1rem; font-weight:800; margin:0; }
+    .request-meta { color:#66818a; font-size:.86rem; margin-top:5px; }
+    .request-details { background:#f2f8f6; border-radius:9px; color:#355760; margin:15px 0; padding:14px 16px; }
+    .request-details p { margin:0 0 7px; }
+    .request-details p:last-child { margin-bottom:0; }
+    .request-actions { align-items:center; display:flex; flex-wrap:wrap; gap:9px; }
+    .request-actions form { margin:0; }
+    .request-empty { background:#f3f8f7; border:1px dashed #a9c8c5; border-radius:12px; color:#58747c; padding:38px 20px; text-align:center; }
+    @media(max-width:600px){ .requests-hero{align-items:start; flex-direction:column;} .request-card{padding:16px;} }
+</style>
+<div class="container requests-page">
     <div class="mb-3">
-        <a href="{% url 'administrativo' %}"
-           class="btn btn-secondary">
-            Volver
-        </a>
+        <a href="{% url 'administrativo' %}" class="btn btn-secondary btn-back">← Volver al panel administrativo</a>
+    </div>
+    <div class="requests-hero">
+        <div>
+            <p class="text-uppercase fw-bold small mb-2">Panel administrativo · Atención diaria</p>
+            <h1>Solicitudes web</h1>
+            <p>Revisa lo que pidió cada persona y, si corresponde, agenda su cita desde la agenda general.</p>
+        </div>
+        <span class="requests-count" aria-label="{{ total_solicitudes_pendientes }} solicitudes pendientes">{{ total_solicitudes_pendientes }}</span>
     </div>
 
-    <h2>Inbox de Solicitudes</h2>
-
-    <table class="table table-striped mt-4">
-        <thead>
-            <tr>
-                <th>Nombre</th>
-                <th>Email</th>
-                <th>Teléfono</th>
-                <th>Mensaje</th>
-                <th>Fecha</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-
-        <tbody>
-        {% for s in solicitudes %}
-            <tr>
-                <td>{{ s.Nombre }}</td>
-                <td>{{ s.Email }}</td>
-                <td>{{ s.Numero_telefonico }}</td>
-                <td>{{ s.Propuesta_De_Dia }}</td>
-                <td>{{ s.Fecha }}</td>
-
-                <td>
-                    <!-- ✔ Crear cita -->
-                    <a href="{% url 'crear_cita_desde_propuesta' s.ID_Propuesta %}" 
-                       class="btn btn-success btn-sm">
-                        Crear Cita
-                    </a>
-
-                    <!-- ❌ Rechazar -->
-                    <a href="{% url 'rechazar_propuesta' s.ID_Propuesta %}" 
-                       class="btn btn-danger btn-sm">
-                        Rechazar
-                    </a>
-                </td>
-            </tr>
-
-        {% empty %}
-            <tr>
-                <td colspan="6" class="text-center">
-                    No hay solicitudes 😢
-                </td>
-            </tr>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %}" role="status">{{ message }}</div>
         {% endfor %}
-        </tbody>
-    </table>
+    {% endif %}
+
+    {% for s in solicitudes %}
+        <article class="request-card">
+            <div class="request-card-head">
+                <div>
+                    <h2>{{ s.Nombre }}</h2>
+                    <div class="request-meta">Recibida {{ s.Fecha|date:"d/m/Y · g:i A" }} · Solicitud pendiente</div>
+                </div>
+                <span class="badge text-bg-warning">Por revisar</span>
+            </div>
+            <div class="request-details">
+                <p><strong>Servicio:</strong> {{ s.servicio_solicitado|default:"No especificado en la solicitud original" }}</p>
+                {% if s.preferencia_solicitada %}<p><strong>Preferencia:</strong> {{ s.preferencia_solicitada }}</p>{% endif %}
+                {% if s.Numero_telefonico %}<p><strong>Teléfono:</strong> <a href="tel:+505{{ s.Numero_telefonico }}">{{ s.Numero_telefonico }}</a></p>{% endif %}
+                <p><strong>Correo:</strong> {% if s.Email %}<a href="mailto:{{ s.Email }}">{{ s.Email }}</a>{% else %}No proporcionado{% endif %}</p>
+            </div>
+            <div class="request-actions">
+                <a href="{% url 'crear_cita_desde_propuesta' s.ID_Propuesta %}" class="btn btn-primary">Revisar en agenda y programar</a>
+                <form method="post" action="{% url 'rechazar_propuesta' s.ID_Propuesta %}" onsubmit="return confirm('¿Marcar esta solicitud como rechazada? Ya no aparecerá en pendientes.');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-secondary">Rechazar solicitud</button>
+                </form>
+            </div>
+        </article>
+    {% empty %}
+        <div class="request-empty">
+            <h2 class="h5 fw-bold">No hay solicitudes pendientes</h2>
+            <p class="mb-0">Las nuevas solicitudes enviadas desde el sitio aparecerán aquí.</p>
+        </div>
+    {% endfor %}
 </div>
 {% endblock %}

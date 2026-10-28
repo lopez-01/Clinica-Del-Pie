@@ -1,14 +1,8 @@
 {% load static %}
-{% if success %}
-  <script>
-    alert("¡Tu cita fue enviada con éxito!");
-  </script>
-{% endif %}
-
 <!DOCTYPE html>
-<html class="wide wow-animation" lang="en">
+<html class="wide wow-animation" lang="es">
   <head>
-    <title>Home</title>
+    <title>Clínica del Pie Casa Dr. Scholl | Cuidado podológico</title>
     <meta name="format-detection" content="telephone=no">
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -19,7 +13,7 @@
     <link rel="stylesheet" href="{% static 'web/css/bootstrap.css' %}">
     <link rel="stylesheet" href="{% static 'web/css/fonts.css' %}">
     <link rel="stylesheet" href="{% static 'web/css/style.css' %}">
-    <link rel="stylesheet" href="{% static 'css/public-refresh.css' %}?v=servicios-color-20260618b">
+    <link rel="stylesheet" href="{% static 'css/public-refresh.css' %}?v=public-workflow-20261028a">
     <style>.ie-panel{display: none;background: #212121;padding: 10px 0;box-shadow: 3px 3px 5px 0 rgba(0,0,0,.3);clear: both;text-align:center;position: relative;z-index: 1;} html.ie-10 .ie-panel, html.lt-ie-10 .ie-panel {display: block;}</style>
   </head>
   <body>
@@ -45,7 +39,7 @@
                     <button class="rd-navbar-toggle" data-rd-navbar-toggle=".rd-navbar-nav-wrap"><span></span></button>
                     <!-- RD Navbar Brand-->
                     <div class="rd-navbar-brand">
-                    <a class="brand" href="#">
+                    <a class="brand" href="#home" aria-label="Inicio Clínica del Pie Casa Dr. Scholl">
                     <img src="{% static 'imagenes/DrScholls_Color_logo.png' %}" alt="Dr Scholl" style="height: 60px;">
                     </a>
                     </div>
@@ -53,14 +47,6 @@
                   <div class="rd-navbar-main-element">
                     <div class="rd-navbar-nav-wrap">
                       <!-- RD Navbar Share-->
-                      <div class="rd-navbar-share fl-bigmug-line-share27" data-rd-navbar-toggle=".rd-navbar-share-list">
-                        <ul class="list-inline rd-navbar-share-list">
-                          <li class="rd-navbar-share-list-item"><a class="icon fa fa-facebook" href="#"></a></li>
-                          <li class="rd-navbar-share-list-item"><a class="icon fa fa-twitter" href="#"></a></li>
-                          <li class="rd-navbar-share-list-item"><a class="icon fa fa-google-plus" href="#"></a></li>
-                          <li class="rd-navbar-share-list-item"><a class="icon fa fa-instagram" href="#"></a></li>
-                        </ul>
-                      </div>
                       <ul class="rd-navbar-nav">
                         <li class="rd-nav-item active"><a class="rd-nav-link" href="#home">Inicio</a></li>
                         <li class="rd-nav-item"><a class="rd-nav-link" href="#services">Servicios</a></li>
@@ -83,7 +69,8 @@
               <div class="swiper-slide-caption section-md">
                 <div class="container">
                   <h1 data-caption-animate="fadeInLeft" data-caption-delay="0">Cuidado Integral del Pie</h1>
-                  <p class="text-width-large" data-caption-animate="fadeInRight" data-caption-delay="100">Brindamos tratamientos especializados para el cuidado de los pies, atendiendo tanto a pacientes diabéticos como no diabéticos con técnicas seguras y profesionales..</p>
+                  <p class="text-width-large" data-caption-animate="fadeInRight" data-caption-delay="100">Tratamientos podológicos y cuidado especializado para acompañarte en cada paso.</p>
+                  <a class="button button-primary button-pipaluk public-hero-cta" href="#contacts">Solicitar una cita</a>
                 </div>
               </div>
             </div>
@@ -91,7 +78,8 @@
               <div class="swiper-slide-caption section-md">
                 <div class="container">
                   <h1 data-caption-animate="fadeInLeft" data-caption-delay="0">Equipo Profesional Especializado</h1>
-                  <p class="text-width-large" data-caption-animate="fadeInRight" data-caption-delay="100">Contamos con personal capacitado y con experiencia en el tratamiento de afecciones podológicas, comprometidos con la salud y bienestar de cada paciente..</p>
+                  <p class="text-width-large" data-caption-animate="fadeInRight" data-caption-delay="100">Un equipo preparado para atenderte con cuidado, claridad y atención personalizada.</p>
+                  <a class="button button-primary button-pipaluk public-hero-cta" href="#contacts">Consultar disponibilidad</a>
                 </div>
               </div>
             </div>
@@ -99,7 +87,8 @@
               <div class="swiper-slide-caption section-md">
                 <div class="container">
                   <h1 data-caption-animate="fadeInLeft" data-caption-delay="0">Tratamientos Seguros y Efectivos</h1>
-                  <p class="text-width-large" data-caption-animate="fadeInRight" data-caption-delay="100">Aplicamos procedimientos modernos y protocolos de higiene estrictos, garantizando resultados efectivos en el cuidado y recuperación de tus pies..</p>
+                  <p class="text-width-large" data-caption-animate="fadeInRight" data-caption-delay="100">Conoce nuestros servicios y solicita información sobre la atención que necesitas.</p>
+                  <a class="button button-primary button-pipaluk public-hero-cta" href="#services">Conocer servicios</a>
                 </div>
               </div>
             </div>
@@ -117,7 +106,7 @@
       <section class="section section-sm section-first bg-default text-center public-services-section" id="services" style="background-color: white" >
         <div class="container">
           <div class="row row-30 justify-content-center public-services-shell">
-            <div class="col-md-7 col-lg-5 col-xl-6 text-lg-left wow fadeInUp public-services-photo"><img src="{% static 'imagenes/servicio.jpg' %}" alt="" width="415" height="592"/>
+          <div class="col-md-7 col-lg-5 col-xl-6 text-lg-left wow fadeInUp public-services-photo"><img src="{% static 'imagenes/servicio.jpg' %}" alt="Atención podológica en la clínica" width="415" height="592"/>
             </div>
          <div class="col-lg-7 col-xl-6 public-services-content">
   <div class="text-center mb-4 public-services-title">
@@ -128,7 +117,7 @@
     <div class="col-sm-6 wow fadeInRight" data-wow-delay=".1s">
       <article class="box-icon-modern box-icon-modern-2">
         <div class="box-icon-modern-icon linearicons-heart"></div>
-        <h5 class="box-icon-modern-title"><a href="#">Pedicure <br>Clínico</a></h5>
+        <h5 class="box-icon-modern-title"><a href="#contacts">Pedicure <br>Clínico</a></h5>
         <div class="box-icon-modern-decor"></div>
         <p class="box-icon-modern-text">Tratamiento especializado para el cuidado de los pies.</p>
       </article>
@@ -137,7 +126,7 @@
     <div class="col-sm-6 wow fadeInRight" data-wow-delay=".2s">
       <article class="box-icon-modern box-icon-modern-2">
         <div class="box-icon-modern-icon linearicons-trash"></div>
-        <h5 class="box-icon-modern-title"><a href="#">Retirada de <br>Shellac</a></h5>
+        <h5 class="box-icon-modern-title"><a href="#contacts">Retirada de <br>Shellac</a></h5>
         <div class="box-icon-modern-decor"></div>
         <p class="box-icon-modern-text">Retiro seguro del esmalte Shellac sin dañar la uña.</p>
       </article>
@@ -146,7 +135,7 @@
     <div class="col-sm-6 wow fadeInRight" data-wow-delay=".3s">
       <article class="box-icon-modern box-icon-modern-2">
        <div class="box-icon-modern-icon linearicons-cross"></div>
-        <h5 class="box-icon-modern-title"><a href="#">Extracción de <br>Uñero</a></h5>
+        <h5 class="box-icon-modern-title"><a href="#contacts">Extracción de <br>Uñero</a></h5>
         <div class="box-icon-modern-decor"></div>
         <p class="box-icon-modern-text">Limpieza y tratamiento de uñas encarnadas o inflamadas.</p>
       </article>
@@ -155,7 +144,7 @@
     <div class="col-sm-6 wow fadeInRight" data-wow-delay=".4s">
       <article class="box-icon-modern box-icon-modern-2">
         <div class="box-icon-modern-icon linearicons-magic-wand"></div>
-        <h5 class="box-icon-modern-title"><a href="#">Pintura de <br>Shellac</a></h5>
+        <h5 class="box-icon-modern-title"><a href="#contacts">Pintura de <br>Shellac</a></h5>
         <div class="box-icon-modern-decor"></div>
         <p class="box-icon-modern-text">Aplicación de esmalte Shellac de larga duración.</p>
       </article>
@@ -164,7 +153,7 @@
     <div class="col-sm-6 wow fadeInRight" data-wow-delay=".5s">
       <article class="box-icon-modern box-icon-modern-2">
         <div class="box-icon-modern-icon linearicons-brush"></div>
-        <h5 class="box-icon-modern-title"><a href="#">Pintura de <br>Pies</a></h5>
+        <h5 class="box-icon-modern-title"><a href="#contacts">Pintura de <br>Pies</a></h5>
         <div class="box-icon-modern-decor"></div>
         <p class="box-icon-modern-text">Aplicación de esmalte para embellecer y cuidar los pies.</p>
       </article>
@@ -173,7 +162,7 @@
     <div class="col-sm-6 wow fadeInRight" data-wow-delay=".6s">
       <article class="box-icon-modern box-icon-modern-2">
         <div class="box-icon-modern-icon linearicons-pencil"></div>
-        <h5 class="box-icon-modern-title"><a href="#">Pintura de <br>Manos</a></h5>
+        <h5 class="box-icon-modern-title"><a href="#contacts">Pintura de <br>Manos</a></h5>
         <div class="box-icon-modern-decor"></div>
         <p class="box-icon-modern-text">Aplicación de esmalte para manos con acabado profesional.</p>
       </article>
@@ -182,7 +171,7 @@
     <div class="col-sm-6 wow fadeInRight" data-wow-delay=".7s">
       <article class="box-icon-modern box-icon-modern-2">
         <div class="box-icon-modern-icon linearicons-star"></div>
-        <h5 class="box-icon-modern-title"><a href="#">Manicure</a></h5>
+        <h5 class="box-icon-modern-title"><a href="#contacts">Manicure</a></h5>
         <div class="box-icon-modern-decor"></div>
         <p class="box-icon-modern-text">Cuidado, limpieza y embellecimiento completo de las manos y uñas.</p>
       </article>
@@ -203,36 +192,36 @@
           <div class="row row-sm row-30 justify-content-center">
             <div class="col-md-6 col-lg-5 col-xl-3 wow fadeInRight">
               <!-- Team Classic-->
-              <article class="team-classic team-classic-lg"><a class="team-classic-figure" href="#"><img src="{% static 'imagenes/ron.png' %}" alt="" width="420" height="424"/></a>
+              <article class="team-classic team-classic-lg"><div class="team-classic-figure"><img src="{% static 'imagenes/ron.png' %}" alt="Guillermo Zepeda, doctor" width="420" height="424"/></div>
                 <div class="team-classic-caption">
-                  <h4 class="team-classic-name"><a href="#">Guillermo Zepeda</a></h4>
+                  <h4 class="team-classic-name">Guillermo Zepeda</h4>
                   <p class="team-classic-status">Doctor</p>
                 </div>
               </article>
             </div>
             <div class="col-md-6 col-lg-5 col-xl-3 wow fadeInRight" data-wow-delay=".1s">
               <!-- Team Classic-->
-              <article class="team-classic team-classic-lg"><a class="team-classic-figure" href="#"><img src="{% static 'imagenes/vics.png' %}" alt="" width="420" height="424"/></a>
+              <article class="team-classic team-classic-lg"><div class="team-classic-figure"><img src="{% static 'imagenes/vics.png' %}" alt="Vladimir Fonseca, doctor" width="420" height="424"/></div>
                 <div class="team-classic-caption">
-                  <h4 class="team-classic-name"><a href="#">Vladimir fonseca</a></h4>
+                  <h4 class="team-classic-name">Vladimir Fonseca</h4>
                   <p class="team-classic-status">Doctor</p>
                 </div>
               </article>
             </div>
             <div class="col-md-6 col-lg-5 col-xl-3 wow fadeInRight" data-wow-delay=".2s">
               <!-- Team Classic-->
-              <article class="team-classic team-classic-lg"><a class="team-classic-figure" href="#"><img src="{% static 'imagenes/trabajador-4.jpeg' %}" alt="" width="420" height="424"/></a>
+              <article class="team-classic team-classic-lg"><div class="team-classic-figure"><img src="{% static 'imagenes/trabajador-4.jpeg' %}" alt="Candida Pérez, doctora" width="420" height="424"/></div>
                 <div class="team-classic-caption">
-                  <h4 class="team-classic-name"><a href="#">Candida Perez</a></h4>
+                  <h4 class="team-classic-name">Cándida Pérez</h4>
                   <p class="team-classic-status">Doctora</p>
                 </div>
               </article>
             </div>
             <div class="col-md-6 col-lg-5 col-xl-3 wow fadeInRight" data-wow-delay=".3s">
               <!-- Team Classic-->
-              <article class="team-classic team-classic-lg"><a class="team-classic-figure" href="#"><img src="{% static 'imagenes/steven.png' %}" alt="" width="420" height="424"/></a>
+              <article class="team-classic team-classic-lg"><div class="team-classic-figure"><img src="{% static 'imagenes/steven.png' %}" alt="Sharon Lumbi, doctora" width="420" height="424"/></div>
                 <div class="team-classic-caption">
-                  <h4 class="team-classic-name"><a href="#">Sharon Lumbi</a></h4>
+                  <h4 class="team-classic-name">Sharon Lumbi</h4>
                   <p class="team-classic-status">Doctora</p>
                 </div>
               </article>
@@ -265,7 +254,7 @@
                   </div>
                   <div class="tab-pane fade" id="tabs-6-2">
                     <h5 class="font-weight-normal">Especialización</h5>
-                    <p>Somos especialistas en el cuidado integral de los pies, brindando tratamientos profesionales tanto para pacientes diabéticos como no diabéticos, con un enfoque preventivo y terapéutico..</p>
+                  <p>Somos especialistas en el cuidado integral de los pies, con un enfoque preventivo y terapéutico para pacientes diabéticos y no diabéticos.</p>
                   </div>
                   <div class="tab-pane fade" id="tabs-6-3">
                     <h5 class="font-weight-normal">Profesionalismo</h5>
@@ -274,13 +263,13 @@
                   <div class="tab-pane fade" id="tabs-6-4">
                     <h5 class="font-weight-normal">Confianza</h5>
                     <p>Trabajamos con altos estándares de higiene y profesionalismo, brindando un servicio confiable y seguro en cada procedimiento realizado.</p>
-                    <div class="group-sm group-middle"><a class="button button-secondary button-pipaluk" href="#modalCta" data-toggle="modal">Ponerse en Contacto</a><a class="button button-default-outline button-wapasha" href="#">Leer mas</a></div>
+                    <div class="group-sm group-middle"><a class="button button-secondary button-pipaluk" href="#contacts">Contactar a la clínica</a></div>
                   </div>
                 </div>
               </div>
             </div>
             <div class="col-lg-6 text-center wow fadeInUp" data-wow-delay=".1s">
-              <div class="owl-carousel owl-style-1" data-items="2" data-stage-padding="0" data-loop="true" data-margin="0" data-mouse-drag="true" data-autoplay="true"><a class="box-device" href="#"><img src="{% static 'imagenes/trabajador-3.jpeg' %}" alt="" width="313" height="580"/></a><a class="box-device" href="#"><img src="{% static 'imagenes/vladimir.png' %}" alt="" width="313" height="580"/></a><a class="box-device" href="#"><img src="{% static 'imagenes/trabajadora-2.jpeg' %}" alt="" width="313" height="580"/></a><a class="box-device" href="#"><img src="{% static 'imagenes/trabajador-1.jpeg' %}" alt="" width="313" height="580"/></a></div>
+              <div class="owl-carousel owl-style-1" data-items="2" data-stage-padding="0" data-loop="true" data-margin="0" data-mouse-drag="true" data-autoplay="true"><div class="box-device"><img src="{% static 'imagenes/trabajador-3.jpeg' %}" alt="Integrante del equipo clínico" width="313" height="580"/></div><div class="box-device"><img src="{% static 'imagenes/vladimir.png' %}" alt="Integrante del equipo clínico" width="313" height="580"/></div><div class="box-device"><img src="{% static 'imagenes/trabajadora-2.jpeg' %}" alt="Integrante del equipo clínico" width="313" height="580"/></div><div class="box-device"><img src="{% static 'imagenes/trabajador-1.jpeg' %}" alt="Integrante del equipo clínico" width="313" height="580"/></div></div>
             </div>
           </div>
         </div>
@@ -298,8 +287,8 @@
                 <div class="box-contacts-body">
                   <div class="box-contacts-icon fl-bigmug-line-cellphone55"></div>
                   <div class="box-contacts-decor"></div>
-                  <p class="box-contacts-link"><a href="tel:#">5764-6235</a></p>
-                  <p class="box-contacts-link"><a href="tel:#">8209-3730</a></p>
+                  <p class="box-contacts-link"><a href="tel:+50557646235">5764-6235</a></p>
+                  <p class="box-contacts-link"><a href="tel:+50582093730">8209-3730</a></p>
                 </div>
               </article>
             </div>
@@ -308,7 +297,7 @@
                 <div class="box-contacts-body">
                   <div class="box-contacts-icon fl-bigmug-line-up104"></div>
                   <div class="box-contacts-decor"></div>
-                  <p class="box-contacts-link"><a href="#">Km 14 Carretera a Masaya Entrada a Veracruz Comarga Los Madrigales norte Frente al Super Express</a></p>
+                  <p class="box-contacts-link"><a href="https://maps.google.com/?q=Km+14+Carretera+a+Masaya+Veracruz+Los+Madrigales+Nicaragua" target="_blank" rel="noopener noreferrer">Km 14 Carretera a Masaya, entrada a Veracruz, Los Madrigales Norte, frente al Super Express</a></p>
                 </div>
               </article>
             </div>
@@ -317,7 +306,7 @@
                 <div class="box-contacts-body">
                   <div class="box-contacts-icon fl-bigmug-line-chat55"></div>
                   <div class="box-contacts-decor"></div>
-                  <p class="box-contacts-link"><a href="mailto:#">ClinicaDrScholl@gmail.com</a></p>
+                  <p class="box-contacts-link"><a href="mailto:ClinicaDrScholl@gmail.com">ClinicaDrScholl@gmail.com</a></p>
                   
                 </div>
               </article>
@@ -328,26 +317,23 @@
 
       <!-- Contact Form-->
 
-      {% if messages %}
-    <div class="container mt-3">
-      {% for message in messages %}
-        <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %}">
-          {{ message }}
-        </div>
-      {% endfor %}
-    </div>
-      {% endif %}
-
       <form method="POST" action="{% url 'crear_solicitud_web' %}" class="section section-sm section-last bg-default text-left" id="contacts" style="background-color: white">
     {% csrf_token %}
 
   <div class="container">
+      {% if messages %}
+        <div class="public-form-messages" aria-live="polite">
+          {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
     <article class="title-classic">
       <div class="title-classic-title">
         <h3>Solicita una cita</h3>
       </div>
       <div class="title-classic-text">
-        <p>Envianos tus datos y nuestro equipo se pondra en contacto contigo para confirmar disponibilidad.</p>
+        <p>Déjanos tus datos y el servicio que buscas. Revisaremos tu solicitud y te contactaremos para confirmar disponibilidad; enviarla todavía no reserva una hora.</p>
       </div>
     </article>
   <div class="row row-14 gutters-14">
@@ -355,52 +341,74 @@
       <!-- Nombre -->
       <div class="col-md-4">
         <div class="form-wrap">
-          <input class="form-input" type="text" name="nombre" placeholder="Nombre Completo"  required>
+          <label for="solicitud-nombre">Nombre completo <span aria-hidden="true">*</span></label>
+          <input class="form-input" id="solicitud-nombre" type="text" name="nombre" autocomplete="name" maxlength="100" placeholder="Ej. María López" aria-describedby="ayuda-nombre" required>
+          <small id="ayuda-nombre" class="public-form-help">Escribe nombre y apellido.</small>
         </div>
       </div>
 
       <!-- Email -->
       <div class="col-md-4">
         <div class="form-wrap">
-          <input class="form-input" type="email" name="email" placeholder="E-mail opcional">
+          <label for="solicitud-email">Correo electrónico <span class="public-form-optional">Opcional</span></label>
+          <input class="form-input" id="solicitud-email" type="email" name="email" autocomplete="email" maxlength="150" placeholder="nombre@correo.com">
         </div>
       </div>
 
       <!-- Teléfono -->
       <div class="col-md-4">
         <div class="form-wrap">
+          <label for="solicitud-telefono">Teléfono <span aria-hidden="true">*</span></label>
           <input
             class="form-input"
+            id="solicitud-telefono"
             type="tel"
             name="numero_telefonico"
-            placeholder="Telefono de 8 digitos"
+            autocomplete="tel-national"
+            placeholder="8 dígitos"
             inputmode="numeric"
             minlength="8"
             maxlength="8"
             pattern="[0-9]{8}"
+            aria-describedby="ayuda-telefono"
             required>
-
+          <small id="ayuda-telefono" class="public-form-help">Lo usaremos para confirmar disponibilidad.</small>
         </div>
       </div>
 
-      <!-- Propuesta -->
-      <div class="col-12">
+      <div class="col-md-6">
         <div class="form-wrap">
+          <label for="solicitud-servicio">Servicio que necesitas <span aria-hidden="true">*</span></label>
+          <select class="form-input" id="solicitud-servicio" name="servicio_solicitado" required>
+            <option value="" selected disabled>Selecciona un servicio</option>
+            {% for servicio in servicios_web %}
+              <option value="{{ servicio.id_servicio }}">{{ servicio.nombre }}</option>
+            {% endfor %}
+            <option value="orientacion">Necesito orientación</option>
+          </select>
+          <small class="public-form-help">La clínica confirmará contigo los detalles del servicio.</small>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="form-wrap">
+          <label for="solicitud-propuesta">Fecha u horario que prefieres <span class="public-form-optional">Opcional</span></label>
           <textarea
             class="form-input textarea-lg"
+            id="solicitud-propuesta"
             name="propuesta_de_dia"
-            placeholder="Servicio, fecha u horario preferido"
-            minlength="10"
-            maxlength="250"
-            required></textarea>
-          <small class="text-muted">Escribe entre 10 y 250 caracteres.</small>
+            rows="4"
+            placeholder="Por ejemplo: por la mañana, la próxima semana."
+            maxlength="80"
+            aria-describedby="ayuda-propuesta"></textarea>
+          <small id="ayuda-propuesta" class="public-form-help">Si tienes flexibilidad, puedes dejar este campo vacío.</small>
         </div>
       </div>
 
     </div>
 
     <button class="button button-primary button-pipaluk" type="submit">
-      Enviar solicitud
+      Enviar solicitud de cita
     </button>
 
   </div>

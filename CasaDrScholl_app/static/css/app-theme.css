@@ -6,7 +6,9 @@
     --clinic-mint: #dff7ef;
     --clinic-coral: #f4765d;
     --clinic-amber: #f4b04f;
-    --clinic-surface: #ffffff;
+    --clinic-surface: #e7f0ee;
+    --clinic-surface-strong: #cfe3df;
+    --clinic-surface-warm: #f1e2c3;
     --clinic-line: rgba(18, 50, 62, 0.11);
     --clinic-shadow: 0 18px 45px rgba(18, 50, 62, 0.12);
 }
@@ -14,13 +16,22 @@
 html,
 body {
     min-height: 100%;
+    overscroll-behavior-y: none;
 }
 
 body.app-shell {
     background:
-        linear-gradient(135deg, #f6fbff 0%, #eefaf4 48%, #fff6ee 100%);
+        linear-gradient(135deg, #edf5f6 0%, #e5f3ed 48%, #fff0df 100%);
     color: var(--clinic-ink);
     font-family: "Segoe UI", Arial, sans-serif;
+    height: auto;
+    min-height: 100vh;
+}
+
+.app-shell > header {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
 }
 
 .app-navbar {
@@ -134,15 +145,19 @@ body.app-shell {
 
 .card,
 .p-3.border.rounded {
-    background: rgba(255, 255, 255, 0.94);
+    background: var(--clinic-surface);
     box-shadow: var(--clinic-shadow);
 }
 
 .card-header {
-    background: linear-gradient(90deg, rgba(15, 143, 159, 0.12), rgba(244, 176, 79, 0.14));
+    background: linear-gradient(90deg, #c6e1dc, #f0ddb6);
     border-bottom: 1px solid var(--clinic-line);
     color: var(--clinic-ink);
     font-weight: 800;
+}
+
+.app-main .card-header.bg-white {
+    background: linear-gradient(90deg, #c6e1dc, #f0ddb6) !important;
 }
 
 .btn {
@@ -193,13 +208,13 @@ body.app-shell {
 }
 
 .table {
-    background: #ffffff;
+    background: #f1f6f5;
     box-shadow: 0 12px 32px rgba(18, 50, 62, 0.08);
     overflow: hidden;
 }
 
 .table thead th {
-    background: #e9f7f6;
+    background: #c8e1dc;
     border-bottom: 0;
     color: var(--clinic-teal-dark);
     font-size: 0.83rem;
@@ -208,9 +223,29 @@ body.app-shell {
 }
 
 .table tbody td {
-    border-color: rgba(18, 50, 62, 0.08);
+    border-color: rgba(18, 50, 62, 0.12);
     color: #284752;
     vertical-align: middle;
+}
+
+.table tbody tr:nth-child(even) > * {
+    background-color: #dfece9;
+}
+
+.list-group-item {
+    background: #edf4f2;
+    border-color: rgba(18, 50, 62, 0.12);
+    color: #284752;
+}
+
+.list-group-item:nth-child(even) {
+    background: #dfece9;
+}
+
+.list-group-item-action:hover,
+.list-group-item-action:focus {
+    background: #cfe3df;
+    color: var(--clinic-ink);
 }
 
 .badge {
@@ -437,7 +472,7 @@ body.app-shell {
 }
 
 .table-panel {
-    background: rgba(255, 255, 255, 0.96);
+    background: #e5efed;
     border: 1px solid var(--clinic-line);
     border-radius: 8px;
     box-shadow: var(--clinic-shadow);
@@ -446,7 +481,7 @@ body.app-shell {
 
 .table-panel-header {
     align-items: center;
-    background: linear-gradient(90deg, rgba(15, 143, 159, 0.1), rgba(244, 176, 79, 0.1));
+    background: linear-gradient(90deg, #c4ded9, #efddb8);
     display: flex;
     justify-content: space-between;
     padding: 22px 24px;
@@ -620,4 +655,24 @@ body.app-shell {
         border-left: 1px solid var(--clinic-line);
         border-radius: 0 0 8px 8px;
     }
+}
+
+/* Botones de retorno: un mismo gris neutro en todos los módulos. */
+.app-shell a.btn-back,
+.app-shell a[data-history-back] {
+    align-items: center;
+    background: #687780 !important;
+    border: 1px solid #687780 !important;
+    color: #ffffff !important;
+    display: inline-flex;
+    text-decoration: none;
+}
+
+.app-shell a.btn-back:hover,
+.app-shell a.btn-back:focus-visible,
+.app-shell a[data-history-back]:hover,
+.app-shell a[data-history-back]:focus-visible {
+    background: #53626a !important;
+    border-color: #53626a !important;
+    color: #ffffff !important;
 }

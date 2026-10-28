@@ -4,6 +4,9 @@
 
 {% block content %}
 <section id="servicios" class="container">
+  <div class="mb-3">
+    <a href="{% url 'landing' %}" class="btn btn-outline-secondary btn-back" data-history-back>← Volver al inicio</a>
+  </div>
   <h2>Nuestros Servicios</h2>
   <div class="grid">
     <div class="card">
@@ -43,8 +46,8 @@
     </div>
   </div>
   <section id="button" class="container">
-    <a href="{% url 'seleccionar_servicios' %}">
-      <button type="button" class="btn">Solicitar cita</button>
+    <a href="{% url 'landing' %}#contacts">
+      <button type="button" class="btn">Solicitar una cita</button>
     </a>
   </section>
 </section>

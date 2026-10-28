@@ -1,15 +1,19 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Datos del Cliente{% endblock %}
+{% block title %}Registrar paciente{% endblock %}
 
 {% block content %}
 
 <div class="container mt-5">
 
+    <div class="mb-3">
+        <a href="{% url 'seleccionar_servicios' %}" class="btn btn-outline-secondary btn-back" data-history-back>← Volver</a>
+    </div>
+
     <!-- Título -->
     <div class="text-center mb-4">
-        <h2 class="fw-bold">Datos del Cliente</h2>
-        <p class="text-muted">Completa la información para continuar con la cita</p>
+        <h2 class="fw-bold">Registrar paciente nuevo</h2>
+        <p class="text-muted">Completa los datos del paciente para continuar con la cita.</p>
     </div>
 
     <!-- Servicios seleccionados -->

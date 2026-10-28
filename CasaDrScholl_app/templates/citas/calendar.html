@@ -4,54 +4,73 @@
 
 {% block content %}
 
-<div class="calendar-topbar">
-
-    <div class="calendar-operator">
-        <span>Operativo</span>
-        <strong>{{ operativo.personal.nombre }} {{ operativo.personal.apellido }}</strong>
+<div class="calendar-topbar calendar-topbar-operativo">
+    <a class="btn btn-secondary btn-back" href="{% if cita_seguimiento %}{% url 'cancelar_seguimiento' %}{% elif flujo_inbox %}{% url 'inbox' %}?cancelar=1{% elif cita_destacada_id %}{% url 'detalle_cita' cita_destacada_id %}{% elif es_administrativo %}{% url 'calendar' %}?general=1{% else %}{% url 'operativo' %}{% endif %}">← {% if cita_seguimiento %}Cancelar seguimiento{% elif flujo_inbox %}Volver a solicitudes{% else %}Volver{% endif %}</a>
+    <div class="calendar-topbar-controls">
+        <form method="post" class="calendar-operator-select">
+            {% csrf_token %}
+            <input type="hidden" name="cambiar_operativo" value="1">
+            <input type="hidden" name="fecha" value="{{ fecha_actual|date:'Y-m-d' }}">
+            {% if cita_destacada_id %}<input type="hidden" name="cita_id" value="{{ cita_destacada_id }}">{% endif %}
+            <label for="operativo-calendario">{% if es_administrativo %}Ver agenda de{% else %}Agendar con{% endif %}</label>
+            <select id="operativo-calendario" name="operativo_id" class="form-select">
+                {% for opcion in operativos_disponibles %}
+                    <option value="{{ opcion.id_operativo }}"{% if opcion.id_operativo == operativo.id_operativo %} selected{% endif %}>
+                        {{ opcion.personal.nombre }} {{ opcion.personal.apellido }}
+                    </option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-primary" type="submit">Ver agenda</button>
+        </form>
+        <form class="calendar-search" onsubmit="irAFechaCalendario(); return false;">
+            <label for="buscar-fecha-calendario">Ir a fecha</label>
+            <input type="date" id="buscar-fecha-calendario" class="form-control"
+                   max="{{ fecha_maxima|date:'Y-m-d' }}" value="{{ fecha_actual|date:'Y-m-d' }}">
+            <button class="btn btn-info" type="submit">Buscar</button>
+        </form>
     </div>
-
-    <a class="btn btn-secondary"
-       href="{% url 'seleccionar_operativo' %}">
-        Volver
-    </a>
-
 </div>
 
+{% if cita_seguimiento %}
+<div class="alert alert-info calendar-followup-banner">
+    <strong>Programando cita de seguimiento</strong>
+    <span>Para {{ cita_seguimiento.cliente.nombre }} {{ cita_seguimiento.cliente.apellido }}, a partir de la cita #{{ cita_seguimiento.id_cita }}. Elige un horario en la agenda.</span>
+</div>
+<div id="seguimiento-contexto"
+     data-cita-id="{{ cita_seguimiento.id_cita }}"
+     data-cliente-id="{{ cita_seguimiento.cliente.id_cliente }}"
+     data-cliente-nombre="{{ cita_seguimiento.cliente.nombre }}"
+     data-cliente-apellido="{{ cita_seguimiento.cliente.apellido }}"
+     data-cliente-telefono="{{ cita_seguimiento.cliente.n_telefono|default:'' }}"
+     data-cliente-email="{{ cita_seguimiento.cliente.email|default:'' }}"
+     data-cliente-sexo="{{ cita_seguimiento.cliente.sexo|default:'M' }}"
+     data-servicios="{{ servicios_seguimiento_ids|join:',' }}"></div>
+{% endif %}
+
+{% if solicitud_web %}
+<div class="alert alert-info calendar-followup-banner" role="status">
+    <strong>Solicitud web de {{ solicitud_web.Nombre }}</strong>
+    <span>Servicio solicitado: {{ solicitud_web.servicio_solicitado|default:"elige los servicios necesarios" }}.{% if solicitud_web.preferencia_solicitada %} Preferencia indicada: {{ solicitud_web.preferencia_solicitada }}.{% endif %} Revisa la disponibilidad y confirma el horario con la persona.</span>
+</div>
+{% endif %}
+
 <div class="calendar-toolbar">
+    <nav class="calendar-week-nav" aria-label="Navegación semanal">
+        <a class="btn btn-outline-primary{% if not puede_semana_anterior %} disabled{% endif %}"
+           href="{% if puede_semana_anterior %}?fecha={{ fecha_anterior|date:'Y-m-d' }}{% if cita_destacada_id %}&cita_id={{ cita_destacada_id }}{% endif %}{% else %}#{% endif %}">
+            ← Semana anterior
+        </a>
 
-    <a class="btn btn-outline-primary{% if not puede_semana_anterior %} disabled{% endif %}"
-       href="{% if puede_semana_anterior %}?fecha={{ fecha_anterior|date:'Y-m-d' }}{% else %}#{% endif %}">
-        ← Semana anterior
-    </a>
+        <a class="btn btn-outline-secondary"
+           href="?fecha={{ fecha_minima|date:'Y-m-d' }}{% if cita_destacada_id %}&cita_id={{ cita_destacada_id }}{% endif %}">
+            Hoy
+        </a>
 
-    <a class="btn btn-outline-secondary"
-       href="?fecha={{ fecha_minima|date:'Y-m-d' }}">
-        Hoy
-    </a>
-
-    <a class="btn btn-outline-primary{% if not puede_semana_siguiente %} disabled{% endif %}"
-       href="{% if puede_semana_siguiente %}?fecha={{ fecha_siguiente|date:'Y-m-d' }}{% else %}#{% endif %}">
-        Semana siguiente →
-    </a>
-
-    <form class="calendar-search"
-          onsubmit="irAFechaCalendario(); return false;">
-        <label for="buscar-fecha-calendario">
-            Ir a fecha
-        </label>
-        <input
-            type="date"
-            id="buscar-fecha-calendario"
-            class="form-control"
-            min="{{ fecha_minima|date:'Y-m-d' }}"
-            max="{{ fecha_maxima|date:'Y-m-d' }}"
-            value="{{ fecha_actual|date:'Y-m-d' }}">
-        <button class="btn btn-info" type="submit">
-            Buscar
-        </button>
-    </form>
-
+        <a class="btn btn-outline-primary{% if not puede_semana_siguiente %} disabled{% endif %}"
+           href="{% if puede_semana_siguiente %}?fecha={{ fecha_siguiente|date:'Y-m-d' }}{% if cita_destacada_id %}&cita_id={{ cita_destacada_id }}{% endif %}{% else %}#{% endif %}">
+            Semana siguiente →
+        </a>
+    </nav>
 </div>
 
 <div class="container calendar-wrapper">
@@ -94,14 +113,11 @@
 
             {% for e in eventos %}
                 {% if e.dia == dia %}
-                <div class="event {{ e.estado_clase }}"
-
-                    data-id="{{ e.id }}"
+                <div class="event {{ e.estado_clase }}{% if e.es_seguimiento and e.puede_editar %} event-followup{% endif %}{% if e.destacada %} event-highlighted{% endif %}{% if not e.puede_editar %} event-readonly{% endif %}"
+                    {% if e.puede_editar %}data-id="{{ e.id }}" onclick="abrirEditarCita('{{ e.id }}')"{% else %}title="Horario ocupado" aria-label="Horario ocupado"{% endif %}
                     data-top="{{ e.top }}"
                     data-height="{{ e.height }}"
-                    data-estado="{{ e.estado }}"
-
-                    onclick="abrirEditarCita('{{ e.id }}')">
+                    data-estado="{{ e.estado }}">
                     
                     <div class="event-header">
                         <strong>{{ e.cliente }}</strong>
@@ -110,9 +126,10 @@
                     <div class="event-time">
                         {{ e.hora_texto }} - {{ e.hora_fin }}
                     </div>
+                    {% if e.es_seguimiento and e.puede_editar %}<span class="event-followup-label">Seguimiento</span>{% endif %}
 
 
-                    <div class="resize-handle"></div>
+                    {% if e.puede_editar %}<div class="resize-handle"></div>{% endif %}
 
                 </div>
                 {% endif %}
@@ -135,6 +152,8 @@
             left:0;
             width:100%;
             height:100%;
+            overflow-y:auto;
+            overscroll-behavior:contain;
             background:rgba(0,0,0,.5);
             z-index:9999;">
 
@@ -142,15 +161,19 @@
         background:white;
         width:650px;
         max-width:95%;
-        max-height:90vh;
+        max-height:calc(100vh - 40px);
         overflow-y:auto;
+        overscroll-behavior:contain;
+        -webkit-overflow-scrolling:touch;
         margin:20px auto;
         padding:25px;
         border-radius:12px;">
 
-        <h3 class="mb-3">
-            Nueva cita
+        <h3 class="mb-3" id="titulo-cita-modal">
+            {% if cita_seguimiento %}Nueva cita de seguimiento{% else %}Nueva cita{% endif %}
         </h3>
+        {% if cita_seguimiento %}<p class="text-muted" id="descripcion-seguimiento">La cita quedará vinculada al seguimiento de la cita #{{ cita_seguimiento.id_cita }}.</p>{% endif %}
+        {% if solicitud_web %}<div class="alert alert-info"><strong>Solicitud recibida desde la web</strong><br>El servicio solicitado ya está seleccionado cuando coincide con el catálogo. Confirma fecha y horario con la persona antes de guardar.</div>{% endif %}
 
         <div class="row">
 
@@ -175,7 +198,9 @@
                 <input
                     type="time"
                     id="hora-cita"
-                    class="form-control">
+                    class="form-control"
+                    min="08:00"
+                    max="16:59">
             </div>
 
             <div class="col-12 mb-3">
@@ -208,7 +233,8 @@
                                 class="form-check-input servicio-check"
                                 type="checkbox"
                                 value="{{ s.id_servicio }}"
-                                data-duracion="{{ s.duracion }}">
+                                data-duracion="{{ s.duracion|default:0 }}"
+                                {% if cita_seguimiento and s.id_servicio in servicios_seguimiento_ids %}checked{% elif s.id_servicio in servicios_preseleccionados %}checked{% elif solicitud_web and solicitud_web.servicio_solicitado == s.nombre %}checked{% endif %}>
 
                             {{ s.nombre }}
 
@@ -259,36 +285,66 @@
 
         <hr>
 
-        <h5 class="mb-3">
-            Datos del cliente
-        </h5>
+        <h5 class="mb-2">Paciente de la cita</h5>
+        {% if flujo_inbox and cliente_solicitud %}
+            <div id="cliente-solicitud-datos" hidden
+                 data-nombre="{{ cliente_solicitud.nombre }}"
+                 data-apellido="{{ cliente_solicitud.apellido }}"
+                 data-telefono="{{ cliente_solicitud.telefono }}"
+                 data-email="{{ cliente_solicitud.email }}"></div>
+        {% endif %}
+        {% if cliente_solicitud_existente %}
+            <div id="cliente-solicitud-existente" hidden
+                 data-id="{{ cliente_solicitud_existente.id_cliente }}"
+                 data-nombre="{{ cliente_solicitud_existente.nombre }}"
+                 data-apellido="{{ cliente_solicitud_existente.apellido }}"
+                 data-telefono="{{ cliente_solicitud_existente.n_telefono|default:'' }}"
+                 data-email="{{ cliente_solicitud_existente.email|default:'' }}"
+                 data-sexo="{{ cliente_solicitud_existente.sexo|default:'' }}"></div>
+        {% endif %}
+        {% if cita_seguimiento %}
+            <div class="alert alert-info mb-3">
+                <strong>Paciente fijo:</strong>
+                {{ cita_seguimiento.cliente.nombre }} {{ cita_seguimiento.cliente.apellido }}
+                {% if cita_seguimiento.cliente.n_telefono %}<br><span>{{ cita_seguimiento.cliente.n_telefono }}</span>{% endif %}
+            </div>
+        {% elif flujo_inbox and cliente_solicitud_existente %}
+            <div class="alert alert-warning mb-3"><strong>Posible paciente existente.</strong> El teléfono o correo de la solicitud coincide con un registro. Verifica que sea la misma persona antes de programar.</div>
+        {% elif flujo_inbox %}
+            <div class="alert alert-info mb-3"><strong>No encontramos coincidencias por teléfono o correo.</strong> Los datos recibidos están listos para registrar al paciente; también puedes buscar antes de crear un registro nuevo.</div>
+        {% elif es_administrativo %}
+            <p class="text-muted small">Puedes registrar un paciente nuevo o elegir uno que ya esté registrado.</p>
+        {% else %}
+            <p class="text-muted small">Selecciona un paciente que ya tenga citas asociadas a tu cuenta. El personal operativo no registra pacientes nuevos.</p>
+        {% endif %}
 
-        <div class="btn-group w-100 mb-3">
+        <div class="btn-group w-100 mb-3"{% if cita_seguimiento %} style="display:none;"{% endif %}>
 
             <button
                 type="button"
                 class="btn btn-primary"
                 id="btn-nuevo-cliente"
+                {% if not es_administrativo or cita_seguimiento or cliente_solicitud_existente %}style="display:none;"{% endif %}
                 onclick="mostrarNuevoCliente()">
 
-                Nuevo cliente
+                {% if flujo_inbox %}Usar datos de la solicitud{% else %}Registrar paciente nuevo{% endif %}
 
             </button>
 
             <button
                 type="button"
-                class="btn btn-outline-primary"
+                class="btn {% if es_administrativo %}btn-outline-primary{% else %}btn-primary{% endif %}"
                 id="btn-cliente-existente"
                 onclick="mostrarClienteExistente()">
 
-                Cliente existente
+                {% if cliente_solicitud_existente %}Verificar paciente encontrado o buscar otro{% elif flujo_inbox %}Buscar paciente registrado{% else %}Seleccionar paciente existente{% endif %}
 
             </button>
 
         </div>
 
 
-        <div id="nuevo-cliente-container">
+        <div id="nuevo-cliente-container"{% if not es_administrativo or cita_seguimiento %} style="display:none;"{% endif %}>
 
             <div class="row">
 
@@ -301,6 +357,7 @@
                         type="text"
                         id="cliente-nombre"
                         class="form-control"
+                        value="{{ cliente_solicitud.nombre|default:'' }}"
                         required>
                 </div>
 
@@ -313,6 +370,7 @@
                         type="text"
                         id="cliente-apellido"
                         class="form-control"
+                        value="{{ cliente_solicitud.apellido|default:'' }}"
                         required>
                 </div>
 
@@ -329,6 +387,7 @@
                         minlength="8"
                         maxlength="8"
                         pattern="[0-9]{8}"
+                        value="{{ cliente_solicitud.telefono|default:'' }}"
                         placeholder="8 digitos"
                         required>
                 </div>
@@ -342,6 +401,7 @@
                         type="email"
                         id="cliente-email"
                         class="form-control"
+                        value="{{ cliente_solicitud.email|default:'' }}"
                         placeholder="Opcional">
                 </div>
 
@@ -355,16 +415,14 @@
                         class="form-control"
                         required>
 
-                        <option value="M">
+                        {% if flujo_inbox %}<option value="" selected disabled>Selecciona</option>{% endif %}
+
+                        <option value="M"{% if not flujo_inbox %} selected{% endif %}>
                             Masculino
                         </option>
 
                         <option value="F">
                             Femenino
-                        </option>
-
-                        <option value="NB">
-                            No binario
                         </option>
 
                         <option value="O">
@@ -382,19 +440,19 @@
 
         <div
             id="cliente-existente-container"
-            style="display:none;">
+            {% if cita_seguimiento or es_administrativo %}style="display:none;"{% else %}style="display:block;"{% endif %}>
 
             <div class="mb-3">
 
                 <label class="form-label">
-                    Buscar cliente
+                    {% if es_administrativo %}Buscar paciente{% else %}Buscar paciente asociado{% endif %}
                 </label>
 
                 <input
                     type="text"
                     id="buscar-cliente"
                     class="form-control"
-                    placeholder="Nombre y apellido">
+                    placeholder="Nombre y apellido"{% if cita_seguimiento %} disabled{% endif %}>
 
             </div>
 
@@ -443,12 +501,17 @@
 
 <!-- MODAL EDITAR -->
 <div id="editarCitaModal"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="editar-titulo"
      style="display:none;
             position:fixed;
             top:0;
             left:0;
             width:100%;
             height:100%;
+            overflow-y:auto;
+            overscroll-behavior:contain;
             background:rgba(0,0,0,.5);
             z-index:9999;">
 
@@ -456,28 +519,40 @@
         background:white;
         width:500px;
         max-width:95%;
-        margin:40px auto;
+        max-height:calc(100vh - 40px);
+        overflow-y:auto;
+        overscroll-behavior:contain;
+        -webkit-overflow-scrolling:touch;
+        margin:20px auto;
         padding:25px;
         border-radius:12px;">
 
-        <h3>Editar cita</h3>
+        <div class="edit-modal-header">
+            <div>
+                <span class="edit-modal-kicker">AGENDA</span>
+                <h3 id="editar-titulo">Detalles de la cita</h3>
+            </div>
+            <button type="button" class="edit-modal-close" aria-label="Cerrar" onclick="cerrarEditarCita()">×</button>
+        </div>
 
         <div id="editar-info-cliente"
             class="alert alert-info mb-3">
         </div>
+        <div id="editar-mensaje" class="edit-feedback" role="status" aria-live="polite" style="display:none;"></div>
 
         <div id="editar-campos">
 
-        <div class="mb-3">
+        <div class="edit-section mb-3">
 
-            <label class="form-label">
-                Servicios
-            </label>
-
-            <div id="editar-servicios">
-
+            <div class="edit-section-heading">
+                <h4>Servicios</h4>
+                <span>Selecciona los servicios de esta cita</span>
             </div>
 
+            <div id="editar-servicios" class="edit-service-list">
+
+            </div>
+            <div class="edit-duration-hint">Duración sugerida por servicios: <strong id="editar-duracion-sugerida">0 min</strong>. Puedes ajustar la duración de la cita según tu criterio y el horario disponible.</div>
         </div>
 
         <input
@@ -488,8 +563,14 @@
             type="hidden"
             id="editar-estado">
 
-        <div class="mb-3">
-            <label>Fecha</label>
+        <div class="edit-section">
+        <div class="edit-section-heading">
+            <h4>Horario</h4>
+            <span>Verifica que no se cruce con otra cita y que termine antes del cierre</span>
+        </div>
+        <div class="row">
+        <div class="col-md-5 mb-3">
+            <label class="form-label" for="editar-fecha">Fecha</label>
 
             <input
                 type="date"
@@ -499,17 +580,19 @@
                 max="{{ fecha_maxima|date:'Y-m-d' }}">
         </div>
 
-        <div class="mb-3">
-            <label>Hora</label>
+        <div class="col-md-3 mb-3">
+            <label class="form-label" for="editar-hora">Hora</label>
 
             <input
                 type="time"
                 id="editar-hora"
-                class="form-control">
+                class="form-control"
+                min="08:00"
+                max="16:59">
         </div>
 
-        <div class="mb-3">
-            <label>Duración</label>
+        <div class="col-md-4 mb-3">
+            <label class="form-label" for="editar-duracion">Duración de la cita (min)</label>
 
             <input
                 type="number"
@@ -518,23 +601,31 @@
                 min="1"
                 step="1">
         </div>
+        </div>
+        </div>
 
         </div>
 
-        <div class="d-flex gap-2 flex-wrap">
+        <div class="edit-actions">
 
             <button
                 id="btn-guardar-edicion"
-                class="btn btn-success flex-fill"
+                class="btn btn-success"
                 onclick="guardarEdicionCita()">
 
                 Guardar cambios
 
             </button>
+            <button type="button" class="btn btn-secondary" onclick="cerrarEditarCita()">Cerrar</button>
 
+        </div>
+
+        <div id="editar-acciones-estado" class="edit-status-actions">
+            <span class="edit-actions-label">Acciones de la cita</span>
+            <div class="d-flex gap-2 flex-wrap">
             <button
                 id="btn-atender-cita"
-                class="btn btn-success flex-fill"
+                class="btn btn-success"
                 style="display:none;"
                 onclick="atenderCita()">
 
@@ -544,7 +635,7 @@
 
             <button
                 id="btn-programar-cita"
-                class="btn btn-primary flex-fill"
+                class="btn btn-primary"
                 style="display:none;"
                 onclick="programarCita()">
 
@@ -554,7 +645,7 @@
 
             <button
                 id="btn-cancelar-cita"
-                class="btn btn-danger flex-fill"
+                class="btn btn-danger"
                 style="display:none;"
                 onclick="cancelarCita()">
 
@@ -562,14 +653,7 @@
 
             </button>
 
-            <button
-                class="btn btn-secondary flex-fill"
-                onclick="cerrarEditarCita()">
-
-                Cerrar
-
-            </button>
-
+            </div>
         </div>
 
     </div>
@@ -579,6 +663,194 @@
 
 <style>
 
+body.modal-open {
+    overflow: hidden;
+}
+
+.edit-modal-header,
+.edit-actions {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.edit-modal-header {
+    border-bottom: 1px solid #d8e4e1;
+    margin: -4px 0 16px;
+    padding-bottom: 12px;
+}
+
+.edit-modal-header h3 {
+    color: #12323e;
+    font-size: 1.45rem;
+    font-weight: 800;
+    margin: 2px 0 0;
+}
+
+.edit-modal-kicker {
+    color: #087f8c;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+}
+
+.edit-modal-close {
+    align-items: center;
+    background: #edf4f2;
+    border: 0;
+    border-radius: 50%;
+    color: #12323e;
+    display: inline-flex;
+    font-size: 1.5rem;
+    height: 38px;
+    justify-content: center;
+    line-height: 1;
+    width: 38px;
+}
+
+.edit-patient-name {
+    color: #12323e;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.edit-patient-meta {
+    color: #49636c;
+    display: block;
+    font-size: .9rem;
+    margin-top: 3px;
+}
+
+.edit-state-badge {
+    border-radius: 999px;
+    display: inline-block;
+    font-size: .76rem;
+    font-weight: 800;
+    margin-left: 8px;
+    padding: 4px 9px;
+    vertical-align: 2px;
+}
+
+.edit-section {
+    background: #f5f8f7;
+    border: 1px solid #dce8e5;
+    border-radius: 12px;
+    padding: 14px;
+}
+
+.edit-section-heading {
+    margin-bottom: 12px;
+}
+
+.edit-section-heading h4 {
+    color: #12323e;
+    font-size: 1rem;
+    font-weight: 800;
+    margin: 0 0 3px;
+}
+
+.edit-section-heading span,
+.edit-duration-hint {
+    color: #536b73;
+    font-size: .84rem;
+}
+
+.edit-service-list {
+    display: grid;
+    gap: 7px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.edit-service-option {
+    background: white;
+    border: 1px solid #dce8e5;
+    border-radius: 8px;
+    margin: 0;
+    min-height: 42px;
+    padding: 9px 10px 9px 34px;
+}
+
+.cliente-item {
+    background: #fff;
+    border: 1px solid #dce8e5;
+    color: #12323e;
+    cursor: pointer;
+    font: inherit;
+    padding: 0;
+}
+
+.cliente-item:hover,
+.cliente-item:focus-visible {
+    border-color: #087f8c;
+    box-shadow: 0 0 0 2px rgba(8, 127, 140, .14);
+}
+
+.edit-duration-hint {
+    background: #e8f3f1;
+    border-radius: 8px;
+    margin-top: 10px;
+    padding: 9px 10px;
+}
+
+.edit-actions {
+    justify-content: flex-end;
+    margin-top: 14px;
+}
+
+.edit-actions .btn {
+    min-width: 145px;
+}
+
+.edit-status-actions {
+    border-top: 1px solid #dce8e5;
+    margin-top: 14px;
+    padding-top: 12px;
+}
+
+.edit-actions-label {
+    color: #536b73;
+    display: block;
+    font-size: .78rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.edit-feedback {
+    border-radius: 8px;
+    margin-bottom: 12px;
+    padding: 9px 12px;
+}
+
+.edit-feedback.error {
+    background: #fff0ee;
+    border: 1px solid #f2c4bd;
+    color: #8c3025;
+}
+
+.edit-service-empty {
+    color: #536b73;
+    font-size: .9rem;
+    padding: 8px 0;
+}
+
+@media (max-width: 560px) {
+    .edit-service-list {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .edit-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .edit-actions .btn {
+        width: 100%;
+    }
+}
+
 .calendar-topbar,
 .calendar-toolbar {
     width: min(1180px, calc(100% - 32px));
@@ -587,25 +859,54 @@
 }
 
 .calendar-topbar {
-    margin-bottom: 14px;
+    margin-bottom: 22px;
     display: grid;
-    grid-template-columns: minmax(190px, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: stretch;
-    gap: 12px;
+    gap: 16px;
 }
 
 .calendar-toolbar {
-    margin-bottom: 18px;
+    width: fit-content;
+    max-width: calc(100% - 32px);
+    margin-bottom: 22px;
+    min-height: 0;
+    padding: 10px 12px;
+    background: #d9e9e5;
+    border: 1px solid #abcac4;
+    border-radius: 12px;
+    box-shadow: 0 8px 22px rgba(18, 50, 62, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.calendar-followup-banner {
+    width: min(1180px, calc(100% - 32px));
+    margin: -6px auto 18px;
+    border-left: 5px solid #087f8c;
+    background: #d9f0f1;
+    color: #12323e;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.calendar-topbar-controls {
+    align-items: stretch;
     display: grid;
-    grid-template-columns: auto auto auto 1fr;
-    align-items: end;
-    gap: 12px;
+    gap: 14px;
+    grid-template-columns: minmax(320px, 1.45fr) minmax(260px, .8fr);
+}
+
+.calendar-topbar-controls-admin {
+    max-width: 880px;
 }
 
 .calendar-operator {
     align-self: stretch;
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(18, 50, 62, 0.11);
+    background: #dcebe8;
+    border: 1px solid #b2cfca;
     border-radius: 8px;
     box-shadow: 0 12px 28px rgba(18, 50, 62, 0.08);
     display: flex;
@@ -630,6 +931,36 @@
     line-height: 1.2;
 }
 
+.calendar-topbar-operativo {
+    grid-template-columns: auto minmax(0, 1fr);
+}
+
+.calendar-operator-select {
+    align-items: center;
+    background: #dcebe8;
+    border: 1px solid #b2cfca;
+    border-radius: 8px;
+    box-shadow: 0 12px 28px rgba(18, 50, 62, 0.08);
+    display: grid;
+    gap: 8px;
+    grid-template-columns: auto minmax(150px, 1fr) auto;
+    padding: 8px 12px;
+    width: 100%;
+}
+
+.calendar-operator-select label {
+    color: #f4765d;
+    font-size: 0.72rem;
+    font-weight: 850;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.calendar-operator-select .form-select {
+    min-height: 42px;
+}
+
 .calendar-topbar .btn,
 .calendar-toolbar .btn {
     min-height: 48px;
@@ -641,11 +972,40 @@
 }
 
 .calendar-search {
-    justify-self: end;
+    align-items: center;
+    background: #dcebe8;
+    border: 1px solid #b2cfca;
+    border-radius: 8px;
+    box-shadow: 0 12px 28px rgba(18, 50, 62, 0.08);
     display: grid;
-    grid-template-columns: auto minmax(170px, 210px) auto;
-    align-items: end;
-    gap: 8px;
+    grid-template-columns: auto minmax(90px, 140px) auto;
+    gap: 6px;
+    justify-self: start;
+    max-width: 100%;
+    padding: 6px 9px;
+    width: max-content;
+}
+
+.calendar-search .form-control,
+.calendar-search .btn {
+    min-height: 40px;
+}
+
+.calendar-search .form-control {
+    min-width: 0;
+    padding-inline: 7px;
+}
+
+.calendar-search .btn {
+    padding-inline: 11px;
+}
+
+.calendar-week-nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    max-width: 100%;
 }
 
 .calendar-search label {
@@ -657,15 +1017,40 @@
 }
 
 @media (max-width: 900px) {
-    .calendar-topbar,
+    .calendar-topbar-controls {
+        grid-template-columns: minmax(260px, 1.35fr) minmax(255px, .85fr);
+    }
+}
+
+@media (max-width: 760px) {
     .calendar-toolbar {
-        grid-template-columns: 1fr 1fr;
+        padding: 9px;
     }
 
+    .calendar-week-nav .btn {
+        flex: 1 1 auto;
+    }
+
+    .calendar-topbar,
+    .calendar-topbar-operativo {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .calendar-topbar-controls,
+    .calendar-topbar-controls-admin {
+        grid-template-columns: minmax(0, 1fr);
+        max-width: none;
+        width: 100%;
+    }
+
+    .calendar-operator-select,
     .calendar-search {
-        grid-column: 1 / -1;
-        justify-self: stretch;
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .calendar-search label,
+    .calendar-operator-select label {
+        grid-column: auto;
     }
 }
 
@@ -689,7 +1074,7 @@
 .day-column {
     position: relative;
     height: 1200px;
-    background: white;
+    background: #edf4f2;
     overflow: hidden;
 
     background-image:
@@ -699,8 +1084,8 @@
             to bottom,
             transparent 0,
             transparent 119px,
-            #d0d0d0 119px,
-            #d0d0d0 120px
+            #b6ccc8 119px,
+            #b6ccc8 120px
         ),
 
         /* línea media hora */
@@ -708,8 +1093,8 @@
             to bottom,
             transparent 0,
             transparent 59px,
-            #eeeeee 59px,
-            #eeeeee 60px
+            #d7e4e1 59px,
+            #d7e4e1 60px
         );
 }
 
@@ -740,8 +1125,43 @@
     background: #198754;
 }
 
+.event-pendiente {
+    background: #a86100;
+}
+
 .event-cancelada {
     background: #dc3545;
+}
+
+.event-followup {
+    box-shadow: inset 0 0 0 2px #ffd166, 0 0 0 1px rgba(18, 50, 62, .12);
+}
+
+.event-followup-label {
+    display: inline-block;
+    margin-top: 2px;
+    padding: 1px 5px;
+    border-radius: 999px;
+    background: #fff2c2;
+    color: #5c4300;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.event-highlighted {
+    z-index: 5;
+    outline: 4px solid #ffd166;
+    outline-offset: 1px;
+    animation: cita-highlight-pulse 1.15s ease-in-out 3;
+}
+
+@keyframes cita-highlight-pulse {
+    50% { outline-color: #f4765d; outline-width: 6px; }
+}
+
+.event-readonly {
+    cursor: default;
 }
 
 .service-option,
@@ -784,6 +1204,32 @@
 <script>
 
 let clienteExistente = null;
+const puedeRegistrarPacienteNuevo = {{ es_administrativo|yesno:"true,false" }};
+const seguimientoContexto = document.getElementById("seguimiento-contexto");
+const esSeguimiento = Boolean(seguimientoContexto);
+
+function restaurarPacienteSeguimiento() {
+    if (!seguimientoContexto) return;
+    const c = seguimientoContexto.dataset;
+    clienteExistente = c.clienteId;
+    document.getElementById("cliente-nombre").value = c.clienteNombre;
+    document.getElementById("cliente-apellido").value = c.clienteApellido;
+    document.getElementById("cliente-telefono").value = c.clienteTelefono;
+    document.getElementById("cliente-email").value = c.clienteEmail;
+    document.getElementById("cliente-sexo").value = c.clienteSexo || "M";
+    document.getElementById("buscar-cliente").disabled = true;
+    document.getElementById("nuevo-cliente-container").style.display = "none";
+    document.getElementById("cliente-existente-container").style.display = "none";
+}
+
+function bloquearScrollFondo() {
+    document.body.classList.add("modal-open");
+}
+
+function desbloquearScrollFondo() {
+    document.body.classList.remove("modal-open");
+}
+
 const FECHA_MINIMA_AGENDA = "{{ fecha_minima|date:'Y-m-d' }}";
 const FECHA_MAXIMA_AGENDA = "{{ fecha_maxima|date:'Y-m-d' }}";
 const HORA_CIERRE_CLINICA = "17:00";
@@ -809,6 +1255,11 @@ function validarFechaAgenda(fecha) {
 }
 
 function validarHorarioCierre(fecha, hora, duracion) {
+    if (hora < "08:00" || hora >= HORA_CIERRE_CLINICA) {
+        alert("La cita debe iniciar entre las 8:00 a. m. y antes de las 5:00 p. m.");
+        return false;
+    }
+
     const inicio = new Date(`${fecha}T${hora}:00`);
     const fin = new Date(inicio.getTime() + duracion * 60000);
     const cierre = new Date(`${fecha}T${HORA_CIERRE_CLINICA}:00`);
@@ -840,14 +1291,15 @@ function irAFechaCalendario() {
         return;
     }
 
-    if (!validarFechaAgenda(fecha)) {
-        return;
-    }
-
-    window.location.href = `?fecha=${fecha}`;
+    const parametros = new URLSearchParams({ fecha });
+    const citaOrigen = "{{ cita_destacada_id|default:'' }}";
+    if (citaOrigen) parametros.set("cita_id", citaOrigen);
+    window.location.href = `?${parametros.toString()}`;
 }
 
 function mostrarNuevoCliente() {
+
+    if (esSeguimiento) return;
 
     document.getElementById(
         "nuevo-cliente-container"
@@ -870,6 +1322,8 @@ function mostrarNuevoCliente() {
 }
 
 function mostrarClienteExistente() {
+
+    if (esSeguimiento) return;
 
     document.getElementById(
         "nuevo-cliente-container"
@@ -902,14 +1356,46 @@ function mostrarClienteExistente() {
 const PIXELS_PER_HOUR =
     document.querySelector(".hour-slot")
             .offsetHeight;
+const esSolicitudWeb = {{ flujo_inbox|yesno:"true,false" }};
 
 document.addEventListener("DOMContentLoaded", function () {
+
+    if (esSolicitudWeb) {
+        const pacienteCoincidente = document.getElementById("cliente-solicitud-existente");
+        if (pacienteCoincidente) {
+            mostrarClienteExistente();
+            seleccionarClienteDesdeElemento(pacienteCoincidente);
+        } else {
+            mostrarNuevoCliente();
+        }
+    }
+
+    if (esSeguimiento) {
+        restaurarPacienteSeguimiento();
+        const ids = seguimientoContexto.dataset.servicios.split(",").filter(Boolean);
+        document.querySelectorAll(".servicio-check").forEach(check => {
+            check.checked = ids.includes(check.value);
+        });
+        actualizarDuracion();
+        document.getElementById("duracion").dataset.auto = "true";
+    } else if (document.querySelector(".servicio-check:checked")) {
+        actualizarDuracion();
+    }
 
     // POSICIONAR EVENTOS
     document.querySelectorAll(".event").forEach(el => {
         el.style.top = el.dataset.top + "px";
         el.style.height = el.dataset.height + "px";
     });
+
+    const citaDestacada = document.querySelector(".event-highlighted");
+    if (citaDestacada) {
+        window.setTimeout(() => citaDestacada.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+            inline: "center"
+        }), 80);
+    }
 
     // SERVICIOS
     document
@@ -923,6 +1409,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     });
 
+    document.getElementById("editar-servicios").addEventListener("change", actualizarDuracionSugeridaEdicion);
+
     // BUSCADOR DE CLIENTES
     document
     .getElementById("buscar-cliente")
@@ -931,8 +1419,20 @@ document.addEventListener("DOMContentLoaded", function () {
     document
     .getElementById("btn-nuevo-cliente")
     .addEventListener("click", function () {
-
-        limpiarClienteSeleccionado();
+        if (esSolicitudWeb) {
+            const datosSolicitud = document.getElementById("cliente-solicitud-datos");
+            if (datosSolicitud) {
+                document.getElementById("cliente-nombre").value = datosSolicitud.dataset.nombre || "";
+                document.getElementById("cliente-apellido").value = datosSolicitud.dataset.apellido || "";
+                document.getElementById("cliente-telefono").value = datosSolicitud.dataset.telefono || "";
+                document.getElementById("cliente-email").value = datosSolicitud.dataset.email || "";
+                document.getElementById("cliente-sexo").value = "";
+            }
+            clienteExistente = null;
+            document.getElementById("cliente-seleccionado").replaceChildren();
+        } else {
+            limpiarClienteSeleccionado();
+        }
 
     });
 
@@ -1016,45 +1516,35 @@ function buscarClientes() {
     .then(r => r.json())
     .then(data => {
 
-        let html = "";
+        const resultados = document.getElementById("resultados-clientes");
+        resultados.replaceChildren();
 
         data.clientes.forEach(cliente => {
+            const tarjeta = document.createElement("button");
+            tarjeta.type = "button";
+            tarjeta.className = "card mb-2 cliente-item text-start w-100";
+            tarjeta.dataset.id = cliente.id;
+            tarjeta.dataset.nombre = cliente.nombre || "";
+            tarjeta.dataset.apellido = cliente.apellido || "";
+            tarjeta.dataset.telefono = cliente.telefono || "";
+            tarjeta.dataset.email = cliente.email || "";
+            tarjeta.addEventListener("click", () => seleccionarClienteDesdeElemento(tarjeta));
 
-            html += `
-                <div
-                    class="card mb-2 cliente-item"
-                    data-id="${cliente.id}"
-                    data-nombre="${cliente.nombre}"
-                    data-apellido="${cliente.apellido}"
-                    data-telefono="${cliente.telefono || ''}"
-                    data-email="${cliente.email || ''}"
-                    onclick="seleccionarClienteDesdeElemento(this)">
-
-                    <div class="card-body">
-
-                        <strong>
-                            ${cliente.nombre}
-                            ${cliente.apellido}
-                        </strong>
-
-                        <br>
-
-                        ${cliente.telefono || ''}
-
-                        <br>
-
-                        ${cliente.email || ''}
-
-                    </div>
-
-                </div>
-            `;
-
+            const contenido = document.createElement("span");
+            contenido.className = "card-body";
+            const nombre = document.createElement("strong");
+            nombre.textContent = `${cliente.nombre || ""} ${cliente.apellido || ""}`.trim();
+            contenido.appendChild(nombre);
+            const contacto = [cliente.telefono, cliente.email].filter(Boolean).join(" · ");
+            if (contacto) {
+                const detalle = document.createElement("span");
+                detalle.className = "d-block mt-1";
+                detalle.textContent = contacto;
+                contenido.appendChild(detalle);
+            }
+            tarjeta.appendChild(contenido);
+            resultados.appendChild(tarjeta);
         });
-
-        document.getElementById(
-            "resultados-clientes"
-        ).innerHTML = html;
 
     });
 
@@ -1062,6 +1552,8 @@ function buscarClientes() {
 
 
 function seleccionarCliente(cliente) {
+
+    if (esSeguimiento) return;
 
     clienteExistente =
         cliente.id_cliente || cliente.id;
@@ -1081,13 +1573,15 @@ function seleccionarCliente(cliente) {
     document.getElementById("cliente-sexo").value =
         cliente.sexo || "M";
 
-    document.getElementById("cliente-seleccionado").innerHTML = `
-        <div class="alert alert-success mt-2">
-            ✓ Cliente seleccionado:
-            <strong>${cliente.nombre} ${cliente.apellido}</strong>
-        </div>
-    `;
+    const mensajeSeleccion = document.createElement("div");
+    mensajeSeleccion.className = "alert alert-success mt-2";
+    mensajeSeleccion.append(document.createTextNode("✓ Paciente seleccionado: "));
+    const nombreSeleccionado = document.createElement("strong");
+    nombreSeleccionado.textContent = `${cliente.nombre} ${cliente.apellido}`;
+    mensajeSeleccion.appendChild(nombreSeleccionado);
+    document.getElementById("cliente-seleccionado").replaceChildren(mensajeSeleccion);
 
+    document.getElementById("buscar-cliente").value = "";
     document.getElementById("resultados-clientes").innerHTML = "";
 }
 
@@ -1111,6 +1605,7 @@ function cerrarModal() {
     document.getElementById(
         "citaModal"
     ).style.display = "none";
+    desbloquearScrollFondo();
 
     document.getElementById("cliente-nombre").value = "";
     document.getElementById("cliente-apellido").value = "";
@@ -1126,6 +1621,17 @@ function cerrarModal() {
     document.getElementById(
         "duracion"
     ).dataset.auto = "true";
+
+    clienteExistente = null;
+    if (esSeguimiento) {
+        const ids = seguimientoContexto.dataset.servicios.split(",").filter(Boolean);
+        document.querySelectorAll(".servicio-check").forEach(check => {
+            check.checked = ids.includes(check.value);
+        });
+        restaurarPacienteSeguimiento();
+        actualizarDuracion();
+        document.getElementById("duracion").dataset.auto = "true";
+    }
 
 }
 
@@ -1274,6 +1780,16 @@ function crearDesdeClick(event, el) {
     document.getElementById("fecha-cita").value = dia;
     document.getElementById("hora-cita").value = horaSeleccionada;
     document.getElementById("duracion").dataset.auto = "true";
+    if (esSeguimiento) {
+        restaurarPacienteSeguimiento();
+        const ids = seguimientoContexto.dataset.servicios.split(",").filter(Boolean);
+        document.querySelectorAll(".servicio-check").forEach(check => {
+            check.checked = ids.includes(check.value);
+        });
+        actualizarDuracion();
+        document.getElementById("duracion").dataset.auto = "true";
+    }
+    bloquearScrollFondo();
     document.getElementById("citaModal").style.display = "block";
 }
 
@@ -1281,6 +1797,7 @@ function crearDesdeClick(event, el) {
 function actualizarAccionesEdicion(estado) {
 
     const esProgramada = estado === "Programada";
+    const esPendiente = estado === "Pendiente";
     const esCancelada = estado === "Cancelada";
 
     document.getElementById("editar-campos").style.display =
@@ -1290,22 +1807,75 @@ function actualizarAccionesEdicion(estado) {
         esProgramada ? "block" : "none";
 
     document.getElementById("btn-cancelar-cita").style.display =
-        esProgramada ? "block" : "none";
+        esProgramada || esPendiente ? "block" : "none";
 
     document.getElementById("btn-atender-cita").style.display =
-        esProgramada ? "block" : "none";
+        esProgramada || esPendiente ? "block" : "none";
 
     document.getElementById("btn-programar-cita").style.display =
         esCancelada ? "block" : "none";
 
+    document.getElementById("editar-acciones-estado").style.display =
+        esProgramada || esPendiente || esCancelada ? "block" : "none";
+
+}
+
+function mostrarMensajeEdicion(mensaje) {
+    const elemento = document.getElementById("editar-mensaje");
+    elemento.textContent = mensaje;
+    elemento.className = "edit-feedback error";
+    elemento.style.display = mensaje ? "block" : "none";
+}
+
+function actualizarDuracionSugeridaEdicion() {
+    const total = Array.from(document.querySelectorAll(".editar-servicio:checked"))
+        .reduce((suma, check) => suma + (parseInt(check.dataset.duracion, 10) || 0), 0);
+    document.getElementById("editar-duracion-sugerida").textContent = `${total} min`;
+}
+
+function mostrarInformacionPacienteCita(data) {
+    const contenedor = document.getElementById("editar-info-cliente");
+    contenedor.replaceChildren();
+
+    const nombre = document.createElement("span");
+    nombre.className = "edit-patient-name";
+    nombre.textContent = data.cliente || "Paciente";
+    contenedor.appendChild(nombre);
+
+    const estados = {
+        "Programada": ["#dceeff", "#145a91"],
+        "Pendiente": ["#fff0d6", "#805100"],
+        "Atendida": ["#dff3e7", "#17643a"],
+        "Cancelada": ["#fde4e1", "#9b2c22"]
+    };
+    const [fondo, texto] = estados[data.estado] || ["#e8eef0", "#40545b"];
+    const estado = document.createElement("span");
+    estado.className = "edit-state-badge";
+    estado.textContent = data.estado || "Sin estado";
+    estado.style.backgroundColor = fondo;
+    estado.style.color = texto;
+    contenedor.appendChild(estado);
+
+    const contacto = [data.telefono, data.email].filter(Boolean).join(" · ");
+    if (contacto) {
+        const meta = document.createElement("span");
+        meta.className = "edit-patient-meta";
+        meta.textContent = contacto;
+        contenedor.appendChild(meta);
+    }
 }
 
 
 function abrirEditarCita(id) {
 
+    mostrarMensajeEdicion("");
     fetch(`/citas/${id}/json/`)
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) throw new Error("No se pudo cargar la información de la cita.");
+        return response.json();
+    })
     .then(data => {
+        if (data.error) throw new Error(data.mensaje || "No se pudo cargar la información de la cita.");
 
         document.getElementById(
             "editar-id"
@@ -1329,7 +1899,8 @@ function abrirEditarCita(id) {
 
         actualizarAccionesEdicion(data.estado);
 
-        let htmlServicios = "";
+        const listaServicios = document.getElementById("editar-servicios");
+        listaServicios.replaceChildren();
 
         data.todos_servicios.forEach(servicio => {
 
@@ -1339,45 +1910,38 @@ function abrirEditarCita(id) {
                 );
             const checkboxId = `editar-servicio-${servicio.id}`;
 
-            htmlServicios += `
-                <div class="form-check service-option">
-
-                    <input
-                        id="${checkboxId}"
-                        type="checkbox"
-                        class="form-check-input editar-servicio"
-                        value="${servicio.id}"
-                        data-duracion="${servicio.duracion}"
-                        ${seleccionado ? "checked" : ""}>
-
-                    <label class="form-check-label" for="${checkboxId}">
-
-                        ${servicio.nombre}
-                        (${servicio.duracion} min)
-
-                    </label>
-
-                </div>
-            `;
+            const opcion = document.createElement("div");
+            opcion.className = "form-check edit-service-option";
+            const checkbox = document.createElement("input");
+            checkbox.id = checkboxId;
+            checkbox.type = "checkbox";
+            checkbox.className = "form-check-input editar-servicio";
+            checkbox.value = servicio.id;
+            checkbox.dataset.duracion = servicio.duracion || 0;
+            checkbox.checked = seleccionado;
+            const etiqueta = document.createElement("label");
+            etiqueta.className = "form-check-label";
+            etiqueta.htmlFor = checkboxId;
+            etiqueta.textContent = `${servicio.nombre} (${servicio.duracion || 0} min)`;
+            opcion.append(checkbox, etiqueta);
+            listaServicios.appendChild(opcion);
         });
 
-        document.getElementById(
-            "editar-servicios"
-        ).innerHTML = htmlServicios;
+        if (!data.todos_servicios.length) {
+            const vacio = document.createElement("div");
+            vacio.className = "edit-service-empty";
+            vacio.textContent = "No hay servicios disponibles para seleccionar.";
+            listaServicios.appendChild(vacio);
+        }
+        actualizarDuracionSugeridaEdicion();
 
 
         document.getElementById(
             "editarCitaModal"
         ).style.display = "block";
+        bloquearScrollFondo();
 
-        document.getElementById(
-            "editar-info-cliente"
-        ).innerHTML = `
-            <strong>${data.cliente}</strong><br>
-            Estado: ${data.estado}<br>
-            ${data.telefono || ''}<br>
-            ${data.email || ''}
-        `;
+        mostrarInformacionPacienteCita(data);
 
 
     })
@@ -1385,7 +1949,7 @@ function abrirEditarCita(id) {
 
         console.error("ERROR COMPLETO:", error);
 
-        alert(error);
+        alert(error.message || "No se pudo abrir la cita.");
 
     });
 
@@ -1396,10 +1960,14 @@ function cerrarEditarCita() {
     document.getElementById(
         "editarCitaModal"
     ).style.display = "none";
+    desbloquearScrollFondo();
+    mostrarMensajeEdicion("");
 
 }
 
 function guardarEdicionCita() {
+
+    mostrarMensajeEdicion("");
 
     const id =
         document.getElementById(
@@ -1444,6 +2012,16 @@ function guardarEdicionCita() {
         servicios.push(check.value);
     });
 
+    if (servicios.length === 0) {
+        mostrarMensajeEdicion("Selecciona al menos un servicio para la cita.");
+        return;
+    }
+
+    const botonGuardar = document.getElementById("btn-guardar-edicion");
+    const textoOriginal = botonGuardar.textContent.trim();
+    botonGuardar.disabled = true;
+    botonGuardar.textContent = "Guardando…";
+
     fetch("/citas/editar-ajax/", {
 
         method: "POST",
@@ -1465,13 +2043,21 @@ function guardarEdicionCita() {
 
     })
 
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.mensaje || "No se pudieron guardar los cambios.");
+            });
+        }
+        return response.json();
+    })
 
     .then(data => {
 
         if (data.error) {
-
-            alert(data.mensaje);
+            mostrarMensajeEdicion(data.mensaje || "No se pudieron guardar los cambios.");
+            botonGuardar.disabled = false;
+            botonGuardar.textContent = textoOriginal;
             return;
 
         }
@@ -1486,7 +2072,9 @@ function guardarEdicionCita() {
 
         console.error(error);
 
-        alert("Error al guardar cambios.");
+        mostrarMensajeEdicion(error.message || "Error al guardar cambios.");
+        botonGuardar.disabled = false;
+        botonGuardar.textContent = textoOriginal;
 
     });
 
@@ -1606,13 +2194,16 @@ function guardarCita() {
     // 👇 ESTE ES EL CAMBIO CLAVE
     const cliente_id = clienteExistente;
 
-    const servicios = [];
+    if (esSeguimiento && cliente_id !== seguimientoContexto.dataset.clienteId) {
+        alert("El paciente debe ser el mismo de la cita anterior.");
+        restaurarPacienteSeguimiento();
+        return;
+    }
 
-    document
-        .querySelectorAll(".servicio-check:checked")
-        .forEach(check => {
-            servicios.push(check.value);
-        });
+    if (!cliente_id && !puedeRegistrarPacienteNuevo) {
+        alert("Selecciona un paciente existente asociado a tus citas anteriores.");
+        return;
+    }
 
     // VALIDACIONES
     if (!fecha || !hora) {
@@ -1656,6 +2247,15 @@ function guardarCita() {
             return;
         }
     }
+
+
+    const servicios = [];
+
+    document
+        .querySelectorAll(".servicio-check:checked")
+        .forEach(check => {
+            servicios.push(check.value);
+        });
 
     if (servicios.length === 0) {
 
@@ -1702,7 +2302,12 @@ function guardarCita() {
         }
 
         cerrarModal();
-        alert("Cita creada correctamente.");
+        if (data.es_solicitud_web) {
+            alert("La cita se programó y la solicitud web quedó atendida.");
+            window.location.href = "{% url 'inbox' %}";
+            return;
+        }
+        alert(data.es_seguimiento ? "Cita de seguimiento creada correctamente." : "Cita creada correctamente.");
         location.reload();
     })
 

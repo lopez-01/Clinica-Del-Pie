@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Acceso de personal{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 760px;">
+    <a href="{{ volver_url }}" class="btn btn-link px-0 mb-3 btn-back">← Volver</a>
+    <div class="card shadow-sm">
+        {% if empleado.user.is_active %}
+            <div class="card-header"><h2 class="h4 mb-0">¿Seguro que quieres desactivar esta cuenta?</h2></div>
+            <div class="card-body">
+                <p class="mb-2"><strong>{{ empleado.nombre }} {{ empleado.apellido }}</strong> · usuario <strong>{{ empleado.user.username }}</strong></p>
+                <p>La persona no podrá iniciar sesión hasta que un administrador reactive su cuenta.</p>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="desactivar">
+                    <input type="hidden" name="next" value="{{ volver_url }}">
+                    <input type="hidden" name="after_save" value="{{ after_save_url }}">
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.motivo.id_for_label }}">{{ form.motivo.label }}</label>
+                        {{ form.motivo }}
+                        {% for error in form.motivo.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="{{ form.duracion_estimada.id_for_label }}">{{ form.duracion_estimada.label }}</label>
+                        {{ form.duracion_estimada }}
+                        {% for error in form.duracion_estimada.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                        <small class="text-muted">El plazo queda registrado como estimado; la cuenta no se reactiva automáticamente.</small>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label" for="{{ form.confirmar_usuario.id_for_label }}">{{ form.confirmar_usuario.label }}</label>
+                        {{ form.confirmar_usuario }}
+                        {% for error in form.confirmar_usuario.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">Confirmar desactivación</button>
+                        <a href="{{ volver_url }}" class="btn btn-outline-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        {% else %}
+            <div class="card-header"><h2 class="h4 mb-0">¿Quieres reactivar esta cuenta?</h2></div>
+            <div class="card-body">
+                <p>Se restablecerá el acceso al sistema para <strong>{{ empleado.nombre }} {{ empleado.apellido }}</strong> ({{ empleado.user.username }}).</p>
+                <form method="post" class="d-flex gap-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="activar">
+                    <input type="hidden" name="next" value="{{ volver_url }}">
+                    <input type="hidden" name="after_save" value="{{ after_save_url }}">
+                    <button type="submit" class="btn btn-success">Reactivar cuenta</button>
+                    <a href="{{ volver_url }}" class="btn btn-outline-secondary">Cancelar</a>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

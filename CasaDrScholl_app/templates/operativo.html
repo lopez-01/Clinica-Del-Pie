@@ -1,131 +1,156 @@
 {% extends 'base.html' %}
-{% load static %}
-{% block title %}Operativo{% endblock %}
+{% block title %}Panel operativo{% endblock %}
+
+{% block css %}
+<style>
+    .operativo-home { max-width: 1440px; }
+    .operativo-layout { margin: 28px 0; }
+    .operativo-sidebar { background: #e3eeec; border-right: 1px solid #a8cbc5; box-shadow: 8px 0 22px rgba(18,50,62,.08); border-radius: 0; bottom: 0; left: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 13px; position: fixed; top: 78px; width: 250px; z-index: 1020; }
+    .operativo-sidebar-title { color: #173e4b; font-size: 1rem; font-weight: 800; margin: 0 0 13px 5px; }
+    .operativo-sidebar-kicker { color: #0f8f9f; display: block; font-size: .7rem; font-weight: 800; letter-spacing: .09em; margin: 0 0 4px 5px; text-transform: uppercase; }
+    .operativo-nav { display: grid; gap: 7px; }
+    .operativo-nav-link { align-items: center; background: #f1f7f5; border: 1px solid #c3d8d4; border-radius: 10px; color: #244e58; display: flex; gap: 10px; min-height: 58px; padding: 9px; text-decoration: none; transition: background .16s ease, border-color .16s ease, transform .16s ease; }
+    .operativo-nav-link:hover, .operativo-nav-link:focus-visible { background: #d6eae6; border-color: #0f8f9f; color: #123d4b; transform: translateX(2px); }
+    .operativo-nav-icon { align-items: center; background: #c6e0db; border-radius: 9px; color: #0c7380; display: inline-flex; flex: 0 0 36px; font-size: 1.05rem; font-weight: 800; height: 36px; justify-content: center; }
+    .operativo-nav-icon svg { height: 19px; width: 19px; }
+    .operativo-nav-link strong, .operativo-nav-link small { display: block; }
+    .operativo-nav-link strong { font-size: .88rem; line-height: 1.2; }
+    .operativo-nav-link small { color: #66818a; font-size: .74rem; margin-top: 3px; }
+    .operativo-content { margin-left: 272px; min-width: 0; }
+    .operativo-hero { align-items: center; background: linear-gradient(120deg, #c9e4df, #f2dfb8); border: 1px solid #a8cbc5; border-radius: 14px; display: flex; gap: 24px; justify-content: space-between; margin: 0 0 22px; padding: clamp(22px, 4vw, 34px); }
+    .operativo-hero h1 { color: #123d4b; font-size: clamp(1.8rem, 3vw, 2.4rem); font-weight: 800; margin: 0 0 8px; }
+    .operativo-hero p { color: #52717a; margin: 0; }
+    .operativo-kicker { color: #0f8f9f !important; font-size: .82rem; font-weight: 800; letter-spacing: .08em; margin-bottom: 8px !important; text-transform: uppercase; }
+    .operativo-personal { background: rgba(255,255,255,.58); border: 1px solid rgba(18,61,75,.12); border-radius: 999px; color: #315660; font-size: .88rem; font-weight: 750; padding: 8px 13px; white-space: nowrap; }
+    .operativo-section { margin: 28px 0; }
+    .operativo-section-heading { align-items: end; display: flex; justify-content: space-between; margin-bottom: 12px; }
+    .operativo-section-heading h2 { color: #173e4b; font-size: 1.2rem; font-weight: 800; margin: 0; }
+    .operativo-section-heading p { color: #66818a; font-size: .9rem; margin: 4px 0 0; }
+    .operativo-summary { display: grid; gap: 14px; grid-template-columns: repeat(4,minmax(0,1fr)); }
+    .operativo-stat { background: #cfe3df; border: 1px solid #a8cbc5; border-radius: 12px; box-shadow: 0 8px 22px rgba(18,50,62,.09); min-height: 116px; padding: 18px; }
+    .operativo-stat:nth-child(2) { background: #d4e4ed; border-color: #aec7d7; }
+    .operativo-stat:nth-child(3) { background: #d6eadc; border-color: #b1d1ba; }
+    .operativo-stat:nth-child(4) { background: #f1d8cf; border-color: #ddb2a5; }
+    .operativo-stat span { color: #66818a; display: block; font-size: .88rem; font-weight: 650; }
+    .operativo-stat strong { color: #123d4b; display: block; font-size: 2rem; line-height: 1.2; margin: 8px 0 2px; }
+    .operativo-panel { background: #e3eeec; border: 1px solid #a8cbc5; border-radius: 12px; box-shadow: 0 8px 22px rgba(18,50,62,.09); overflow: hidden; }
+    .operativo-panel-heading { align-items: center; background: linear-gradient(100deg, #c4ded9, #efddb8); border-bottom: 1px solid #b4ceca; display: flex; justify-content: space-between; padding: 17px 20px; }
+    .operativo-panel-heading h3 { color: #173e4b; font-size: 1rem; font-weight: 800; margin: 0; }
+    .operativo-panel-heading p { color: #66818a; font-size: .82rem; margin: 4px 0 0; }
+    .operativo-filters { background: #d7e7e4; border-bottom: 1px solid #b4ceca; display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 18px; }
+    .operativo-filter { background: #edf4f2; border: 1px solid #b5ceca; border-radius: 999px; color: #315660; font-size: .82rem; font-weight: 700; padding: 7px 13px; text-decoration: none; }
+    .operativo-filter:hover, .operativo-filter.active { background: #0f8f9f; border-color: #0f8f9f; color: #fff; }
+    .operativo-table-scroll { height: 480px; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+    .operativo-table-scroll:focus-visible { outline: 3px solid rgba(15,143,159,.35); outline-offset: -3px; }
+    .operativo-table { display: table; margin: 0; min-width: 760px; overflow: visible; white-space: normal; width: 100%; }
+    .operativo-table thead th { background: #c8e1dc; color: #244e58; font-size: .8rem; position: sticky; text-transform: uppercase; top: 0; white-space: nowrap; z-index: 2; }
+    .operativo-table tbody td { vertical-align: middle; }
+    .operativo-table .cliente-nombre { color: #183d49; font-weight: 750; }
+    .operativo-table .estado-cell { min-width: 190px; }
+    .operativo-empty { color: #66818a; padding: 32px 18px !important; text-align: center; }
+    .operativo-count { background: #e9f7f1; border-radius: 99px; color: #247351; font-size: .78rem; font-weight: 750; padding: 6px 10px; white-space: nowrap; }
+    @media (max-width: 1199px) { .operativo-sidebar { border: 1px solid #a8cbc5; border-radius: 14px; bottom: auto; left: auto; margin-bottom: 18px; overflow: visible; position: static; top: auto; width: auto; } .operativo-content { margin-left: 0; } .operativo-nav { grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); } }
+    @media (max-width: 900px) { .operativo-summary { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+    @media (max-width: 680px) { .operativo-layout { margin-top: 16px; } .operativo-nav { grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); } .operativo-hero { align-items: flex-start; flex-direction: column; } .operativo-stat { min-height: 102px; padding: 14px; } .operativo-stat strong { font-size: 1.65rem; } .operativo-table-scroll { height: 420px; } .operativo-panel-heading { align-items: flex-start; gap: 10px; } }
+</style>
+{% endblock %}
+
+{% block footer %}{% endblock %}
 
 {% block content %}
-<section>
-    <div class="container">
-        <section class="dashboard-hero">
-            <div>
-                <p class="section-kicker">Panel operativo</p>
-                <h2>Agenda y atencion</h2>
-                <p>Revisa tus citas, filtra por estado y entra al detalle para facturar o dar seguimiento.</p>
-            </div>
-            <div class="dashboard-actions">
-                {% if operativo %}
-                    <div class="operator-badge">
-                        <span>Operativo activo</span>
-                        <strong>{{ operativo.personal.nombre }} {{ operativo.personal.apellido }}</strong>
-                    </div>
-                {% endif %}
-                <a href="{% url 'seleccionar_operativo' %}" class="btn btn-primary">
-                    Registrar nueva cita
+<div class="container operativo-home">
+    <div class="operativo-layout">
+        <aside class="operativo-sidebar" aria-label="Navegación del panel operativo">
+            <span class="operativo-sidebar-kicker">Panel operativo</span>
+            <h2 class="operativo-sidebar-title">Accesos</h2>
+            <nav class="operativo-nav">
+                <a href="{% url 'calendar' %}?propio=1" class="operativo-nav-link">
+                    <span class="operativo-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span>
+                    <span><strong>Consultar agenda</strong><small>Semana y horarios</small></span>
                 </a>
-            </div>
-        </section>
+                <a href="{% url 'pacientes_admin' %}" class="operativo-nav-link">
+                    <span class="operativo-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20v-1a6.5 6.5 0 0 1 13 0v1M16 5.5a3.5 3.5 0 0 1 0 6.8M18 14a5.5 5.5 0 0 1 3.5 5.1v.9"/></svg></span>
+                    <span><strong>Pacientes asociados</strong><small>Datos e historial</small></span>
+                </a>
+                <a href="{% url 'gestionar_comisiones' %}" class="operativo-nav-link">
+                    <span class="operativo-nav-icon" aria-hidden="true">C$</span>
+                    <span><strong>Mis comisiones</strong><small>Consultar pagos</small></span>
+                </a>
+            </nav>
+        </aside>
 
-        <div class="action-grid action-grid-three mb-4">
-            <a href="{% url 'operativo' %}?estado=Pendiente" class="action-card action-card-amber">
-                <span>Filtro</span>
-                <strong>Pendientes</strong>
-                <small>Consulta citas aun por atender.</small>
-            </a>
-            <a href="{% url 'operativo' %}?estado=Atendida" class="action-card action-card-green">
-                <span>Filtro</span>
-                <strong>Atendidas</strong>
-                <small>Historial de citas finalizadas.</small>
-            </a>
-            <a href="{% url 'operativo' %}" class="action-card action-card-dark">
-                <span>Vista</span>
-                <strong>Todas</strong>
-                <small>Quita filtros de la agenda.</small>
-            </a>
+        <main class="operativo-content">
+    <section class="operativo-hero">
+        <div>
+            <p class="operativo-kicker">Panel operativo · {{ hoy|date:"d/m/Y" }}</p>
+            <h1>Tu agenda de atención</h1>
+            <p>Revisa tus citas, atiende a tus pacientes y consulta el estado de tu jornada.</p>
         </div>
+        {% if operativo %}<span class="operativo-personal">{{ operativo.personal.nombre }} {{ operativo.personal.apellido }}</span>{% endif %}
+    </section>
 
-        <div class="table-panel mb-4">
-            <div class="table-panel-header">
-                <div>
-                    <p class="section-kicker">Agenda</p>
-                    <h3>Citas registradas</h3>
-                </div>
-            </div>
-
-            <table class="table table-hover align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th>Cliente</th>
-                        <th>Fecha</th>
-                        <th>Hora</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                {% for cita in citas %}
-                    <tr>
-                        <td>{{ cita.cliente.nombre }} {{ cita.cliente.apellido }}</td>
-                        <td>{{ cita.fechahora|date:"Y-m-d" }}</td>
-                        <td>{{ cita.fechahora|time:"h:i A" }}</td>
-                        <td>
-                            {% if cita.estado %}
-                                <div class="d-flex gap-2 align-items-center flex-wrap">
-                                    {% if cita.estado.nombre_estado == 'Programada' %}
-                                        <span class="badge bg-success">Programada</span>
-                                        <a href="{% url 'cerrar_cita' cita.id_cita %}" class="btn btn-sm btn-danger">Cancelar</a>
-                                    {% elif cita.estado.nombre_estado == 'Pendiente' %}
-                                        <span class="badge bg-warning text-dark">Pendiente</span>
-                                        <a href="{% url 'cerrar_cita' cita.id_cita %}" class="btn btn-sm btn-danger">Cancelar</a>
-                                    {% elif cita.estado.nombre_estado == 'Atendida' %}
-                                        <span class="badge bg-success">Atendida</span>
-                                    {% elif cita.estado.nombre_estado == 'Cancelada' %}
-                                        <span class="badge bg-danger">Cancelada</span>
-                                    {% endif %}
-                                </div>
-                            {% else %}
-                                <span class="badge bg-secondary">Sin estado</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <a href="{% url 'detalle_cita' cita.id_cita %}" class="btn btn-sm btn-primary">
-                                Ver detalle
-                            </a>
-                        </td>
-                    </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="5" class="text-center py-4">
-                            No hay citas registradas.
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+    <section class="operativo-section" aria-labelledby="resumen-operativo">
+        <div class="operativo-section-heading"><div><h2 id="resumen-operativo">Resumen de hoy</h2><p>Estado de tus citas para la fecha actual.</p></div></div>
+        <div class="operativo-summary">
+            <article class="operativo-stat"><span>Citas de hoy</span><strong>{{ total_citas_hoy }}</strong></article>
+            <article class="operativo-stat"><span>Por atender</span><strong>{{ citas_por_atender_hoy }}</strong></article>
+            <article class="operativo-stat"><span>Atendidas</span><strong>{{ citas_atendidas_hoy }}</strong></article>
+            <article class="operativo-stat"><span>Canceladas</span><strong>{{ citas_canceladas_hoy }}</strong></article>
         </div>
+    </section>
 
-        <div class="row g-3 text-center">
-            <div class="col-md-4">
-                <div class="metric-card">
-                    <span>Citas totales</span>
-                    <strong>{{ citas|length }}</strong>
-                    <small>Segun el filtro actual</small>
-                </div>
+    <section class="operativo-section" aria-labelledby="lista-citas">
+        <div class="operativo-panel">
+            <div class="operativo-panel-heading">
+                <div><h3 id="lista-citas">Agenda de esta semana</h3><p>Aquí aparecen solo las citas entre lunes y domingo de la semana actual.</p></div>
+                <span class="operativo-count">{{ total_citas_lista }} cita{{ total_citas_lista|pluralize }}</span>
             </div>
-            <div class="col-md-4">
-                <div class="metric-card">
-                    <span>Hoy</span>
-                    <strong>{{ total_citas_hoy }}</strong>
-                    <small>Citas para la fecha actual</small>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="metric-card">
-                    <span>Confirmadas</span>
-                    <strong>{{ citas_confirmadas }}</strong>
-                    <small>Estado programada</small>
-                </div>
+            <nav class="operativo-filters" aria-label="Filtrar citas">
+                <a href="{% url 'operativo' %}" class="operativo-filter{% if not estado_filtro %} active{% endif %}">Todas esta semana</a>
+                <a href="{% url 'operativo' %}?estado=Programada" class="operativo-filter{% if estado_filtro == 'Programada' %} active{% endif %}">Programadas</a>
+                <a href="{% url 'operativo' %}?estado=Pendiente" class="operativo-filter{% if estado_filtro == 'Pendiente' %} active{% endif %}">Pendientes</a>
+                <a href="{% url 'operativo' %}?estado=Atendida" class="operativo-filter{% if estado_filtro == 'Atendida' %} active{% endif %}">Atendidas</a>
+                <a href="{% url 'operativo' %}?estado=Cancelada" class="operativo-filter{% if estado_filtro == 'Cancelada' %} active{% endif %}">Canceladas</a>
+            </nav>
+            <div class="operativo-table-scroll" role="region" aria-label="Lista de citas registradas" tabindex="0">
+                <table class="table table-hover align-middle operativo-table">
+                    <thead><tr><th>Paciente</th><th>Fecha</th><th>Hora</th><th>Estado</th><th>Acciones</th></tr></thead>
+                    <tbody>
+                    {% for cita in citas %}
+                        <tr>
+                            <td class="cliente-nombre">{{ cita.cliente.nombre }} {{ cita.cliente.apellido }}</td>
+                            <td>{{ cita.fechahora|date:"d/m/Y" }}</td>
+                            <td>{{ cita.fechahora|time:"h:i A" }}</td>
+                            <td class="estado-cell">
+                                {% if cita.estado %}
+                                    <div class="d-flex gap-2 align-items-center flex-wrap">
+                                        {% if cita.estado.nombre_estado == 'Programada' %}
+                                            <span class="badge bg-success">Programada</span>
+                                            <a href="{% url 'cerrar_cita' cita.id_cita %}" class="btn btn-sm btn-outline-danger">Cancelar</a>
+                                        {% elif cita.estado.nombre_estado == 'Pendiente' %}
+                                            <span class="badge bg-warning text-dark">Pendiente</span>
+                                            <a href="{% url 'cerrar_cita' cita.id_cita %}" class="btn btn-sm btn-outline-danger">Cancelar</a>
+                                        {% elif cita.estado.nombre_estado == 'Atendida' %}
+                                            <span class="badge bg-secondary">Atendida</span>
+                                        {% elif cita.estado.nombre_estado == 'Cancelada' %}
+                                            <span class="badge bg-danger">Cancelada</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ cita.estado.nombre_estado }}</span>
+                                        {% endif %}
+                                    </div>
+                                {% else %}<span class="badge bg-secondary">Sin estado</span>{% endif %}
+                            </td>
+                            <td><a href="{% url 'detalle_cita' cita.id_cita %}" class="btn btn-sm btn-primary">Ver detalle</a></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="5" class="operativo-empty">No hay citas que coincidan con este filtro.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
+    </section>
+        </main>
     </div>
-</section>
+</div>
 {% endblock %}

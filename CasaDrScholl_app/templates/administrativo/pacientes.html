@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block title %}Pacientes{% endblock %}
+
+{% block content %}
+<style>
+    .patients-listing { margin-bottom: 28px; }
+    .patients-table .patient-name { color:#173e4b; font-weight:800; }
+    .patients-table .patient-contact { color:#45636d; line-height:1.45; }
+    .patients-table .patient-count { background:#e5f3f0; border-radius:999px; color:#126c75; display:inline-block; font-weight:800; min-width:38px; padding:6px 10px; text-align:center; }
+    .patients-table .patient-actions { min-width:190px; }
+    .patients-summary { color:#66818a; font-size:.88rem; }
+    .patients-pagination { align-items:center; display:flex; gap:12px; justify-content:flex-end; padding:16px 20px; }
+    .patients-pagination span { color:#66818a; font-size:.88rem; }
+    @media(max-width:767.98px) {
+        .patients-table thead { display:none; }
+        .patients-table, .patients-table tbody, .patients-table tr, .patients-table td { display:block; width:100%; }
+        .patients-table tbody { padding:10px; }
+        .patients-table tbody tr { background:#fff; border:1px solid #d5e2df; border-radius:10px; box-shadow:0 5px 16px rgba(18,50,62,.06); margin-bottom:12px; overflow:hidden; padding:8px 14px; }
+        .patients-table tbody td { align-items:start; border:0; display:grid; gap:12px; grid-template-columns:minmax(92px, .65fr) minmax(0,1.35fr); padding:9px 0; }
+        .patients-table tbody td::before { color:#66818a; content:attr(data-label); font-size:.78rem; font-weight:750; }
+        .patients-table tbody td.patient-actions { display:block; min-width:0; padding-top:12px; }
+        .patients-table tbody td.patient-actions::before { display:block; margin-bottom:8px; }
+        .patients-pagination { justify-content:space-between; padding:14px; }
+    }
+</style>
+<div class="container">
+    <div class="mb-3">
+        {% if es_administrativo %}
+            <a href="{% url 'administrativo' %}" class="btn btn-secondary btn-back">← Volver al panel</a>
+        {% else %}
+            <a href="{% url 'operativo' %}" class="btn btn-secondary btn-back">← Volver al panel</a>
+        {% endif %}
+    </div>
+    <section class="dashboard-hero">
+        <div>
+            <p class="section-kicker">{% if es_administrativo %}Panel administrativo{% else %}Panel operativo{% endif %}</p>
+            <h2>Consulta de pacientes</h2>
+            <p>{% if es_administrativo %}Consulta los datos de contacto y accede a las citas y facturas relacionadas.{% else %}Consulta los datos y el historial de los pacientes asociados a tus citas.{% endif %}</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            {% if es_administrativo %}
+                <a href="{% url 'registrar_paciente_admin' %}?cancel_to={{ request.get_full_path|urlencode }}&amp;after_save={{ request.get_full_path|urlencode }}" class="btn btn-primary">Registrar paciente</a>
+            {% endif %}
+        </div>
+    </section>
+
+    <form method="get" class="table-panel mb-4">
+        <div class="table-panel-header">
+            <div>
+                <p class="section-kicker">Directorio</p>
+                <h3>Buscar y ordenar pacientes</h3>
+            </div>
+            <a href="{% url 'pacientes_admin' %}" class="btn btn-info">Limpiar</a>
+        </div>
+        <div class="p-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <label class="form-label" for="buscar">Nombre, teléfono o correo</label>
+                    <input type="search" class="form-control" id="buscar" name="buscar"
+                           value="{{ busqueda }}" placeholder="Buscar paciente" autocomplete="off">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="orden">Ordenar por</label>
+                    <select class="form-select" id="orden" name="orden">
+                        <option value="nombre" {% if orden == 'nombre' %}selected{% endif %}>Nombre</option>
+                        <option value="reciente" {% if orden == 'reciente' %}selected{% endif %}>Cita más reciente</option>
+                        <option value="citas" {% if orden == 'citas' %}selected{% endif %}>Más citas</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">Buscar</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="table-panel">
+        <div class="table-panel-header">
+            <div>
+                <p class="section-kicker">{% if es_administrativo %}Pacientes registrados{% else %}Pacientes asociados{% endif %}</p>
+                <h3>Listado y acceso a su historial</h3>
+            </div>
+            <span class="patients-summary">{% if total_pacientes %}{{ primer_resultado }}–{{ ultimo_resultado }} de {{ total_pacientes }}{% else %}0{% endif %} pacientes</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 patients-table">
+                <thead>
+                    <tr>
+                        <th>Paciente</th>
+                        <th>Contacto</th>
+                        <th>Citas registradas</th>
+                        <th>Cita más reciente</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for paciente in pacientes %}
+                        {% with ultima_cita=paciente.citas_consulta.0 %}
+                        <tr>
+                            <td data-label="Paciente">
+                                <span class="patient-name">{{ paciente.nombre }} {{ paciente.apellido }}</span>
+                                <div class="text-muted small">{{ paciente.sexo_display|default:"Sin dato de sexo" }}</div>
+                            </td>
+                            <td data-label="Contacto" class="patient-contact">
+                                <div>{{ paciente.n_telefono|default:"Sin teléfono" }}</div>
+                                <div class="text-muted small">{{ paciente.email|default:"Sin correo" }}</div>
+                            </td>
+                            <td data-label="Citas registradas"><span class="patient-count">{{ paciente.total_citas }}</span></td>
+                            <td data-label="Cita más reciente">
+                                {% if ultima_cita %}
+                                    {{ ultima_cita.fechahora|date:"d/m/Y" }}
+                                    <div class="text-muted small">
+                                        {% if ultima_cita.operativo %}
+                                            {{ ultima_cita.operativo.personal.nombre }} {{ ultima_cita.operativo.personal.apellido }}
+                                        {% else %}Sin operativo asignado{% endif %}
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">Sin citas registradas</span>
+                                {% endif %}
+                            </td>
+                            <td data-label="Acciones" class="patient-actions">
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <a href="{% url 'detalle_paciente_admin' paciente.id_cliente %}?next={{ request.get_full_path|urlencode }}" class="btn btn-sm btn-primary">Ver historial</a>
+                                    {% if es_administrativo %}<a href="{% url 'editar_paciente_admin' paciente.id_cliente %}?cancel_to={{ request.get_full_path|urlencode }}&amp;after_save={{ request.get_full_path|urlencode }}" class="btn btn-sm btn-outline-primary">Actualizar</a>{% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4" data-label="">
+                                {% if busqueda %}No se encontraron pacientes con esos datos.{% else %}No hay pacientes registrados.{% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if page_obj.paginator.num_pages > 1 %}
+            <nav class="patients-pagination" aria-label="Paginación de pacientes">
+                {% if page_obj.has_previous %}
+                    <a class="btn btn-outline-secondary" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">← Anterior</a>
+                {% else %}
+                    <span></span>
+                {% endif %}
+                <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a class="btn btn-outline-secondary" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Siguiente →</a>
+                {% else %}
+                    <span></span>
+                {% endif %}
+            </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

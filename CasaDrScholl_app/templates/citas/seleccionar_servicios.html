@@ -7,6 +7,10 @@
 
 <div class="container mt-5">
 
+    <div class="mb-3">
+        <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-back" data-history-back>← Volver</a>
+    </div>
+
     <h2 class="text-center mb-4">
         Selecciona los servicios para la cita
     </h2>
@@ -55,8 +59,8 @@
                 name="duracion_final"
                 id="duracion-final"
                 class="form-control"
-                min="15"
-                step="15"
+                min="1"
+                step="1"
             >
 
         </div>

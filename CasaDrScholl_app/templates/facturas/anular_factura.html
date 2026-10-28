@@ -10,7 +10,7 @@
             <h2>Anular factura #{{ factura.id_factura }}</h2>
             <p>Registra el motivo para mantener trazabilidad administrativa.</p>
         </div>
-        <a href="{% url 'ver_factura' factura.id_factura %}" class="btn btn-secondary">
+        <a href="{% url 'ver_factura' factura.id_factura %}" class="btn btn-secondary btn-back" data-history-back>
             Volver
         </a>
     </section>
@@ -58,7 +58,7 @@
                 <button type="submit" class="btn btn-danger">
                     Confirmar anulacion
                 </button>
-                <a href="{% url 'ver_factura' factura.id_factura %}" class="btn btn-secondary">
+                <a href="{% url 'ver_factura' factura.id_factura %}" class="btn btn-secondary" data-history-back>
                     Cancelar
                 </a>
             </div>

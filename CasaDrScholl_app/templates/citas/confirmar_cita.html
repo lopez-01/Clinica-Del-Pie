@@ -6,6 +6,10 @@
 
 <div class="container mt-5">
 
+    <div class="mb-3">
+        <a href="{% url 'seleccionar_fecha_hora' %}" class="btn btn-outline-secondary btn-back" data-history-back>← Volver</a>
+    </div>
+
     <!-- Título -->
     <div class="text-center mb-4">
         <h2 class="fw-bold">Confirmar Cita</h2>
@@ -29,7 +33,7 @@
                     <p><strong>Nombre:</strong> {{ cliente.nombre }} {{ cliente.apellido }}</p>
                     <p><strong>Email:</strong> {{ cliente.email }}</p>
                     <p><strong>Teléfono:</strong> {{ cliente.n_telefono }}</p>
-                    <p><strong>Sexo:</strong> {{ cliente.sexo }}</p>
+                    <p><strong>Sexo:</strong> {% if cliente.sexo == 'M' %}Masculino{% elif cliente.sexo == 'F' %}Femenino{% elif cliente.sexo == 'O' %}Otros{% else %}Sin dato{% endif %}</p>
                 </div>
             </div>
         </div>

@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Agenda general{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 1120px;">
+    <div class="mb-3">
+        <a href="{% if solicitud_web %}{% url 'inbox' %}?cancelar=1{% else %}{% url 'administrativo' %}{% endif %}" class="btn btn-secondary btn-back">← {% if solicitud_web %}Volver a solicitudes{% else %}Volver{% endif %}</a>
+    </div>
+    <section class="dashboard-hero mb-4">
+        <div>
+            <p class="section-kicker">Panel administrativo</p>
+            <h1>Agenda general</h1>
+            <p>Elige a quién consultar o asignar una cita. La lista prioriza al personal con menos minutos de citas reservados esta semana.</p>
+        </div>
+    </section>
+
+    {% if solicitud_web %}
+        <section class="alert alert-info d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4" aria-label="Solicitud web que se está programando">
+            <div>
+                <strong>Programando solicitud de {{ solicitud_web.Nombre }}</strong>
+                <div class="small mt-1"><strong>Servicio:</strong> {{ solicitud_web.servicio_solicitado|default:"No especificado" }}{% if solicitud_web.preferencia_solicitada %} · <strong>Preferencia:</strong> {{ solicitud_web.preferencia_solicitada }}{% endif %}</div>
+                <div class="small mt-1">Teléfono: {{ solicitud_web.Numero_telefonico }}{% if solicitud_web.Email %} · Correo: {{ solicitud_web.Email }}{% endif %}</div>
+            </div>
+            <span class="badge text-bg-warning">Aún pendiente de confirmación</span>
+        </section>
+    {% endif %}
+
+    <section class="table-panel">
+        <div class="table-panel-header">
+            <div>
+                <p class="section-kicker">Carga actual</p>
+                <h2>Personal operativo</h2>
+                <small class="text-muted">Semana del {{ inicio_semana|date:'d M Y' }} al {{ fin_semana|date:'d M Y' }}</small>
+            </div>
+        </div>
+        <div class="p-3 p-md-4">
+            {% for resultado in resultados %}
+                <article class="border rounded-3 p-3 p-md-4 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div>
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <h3 class="h5 mb-0">{{ resultado.operativo.personal.nombre }} {{ resultado.operativo.personal.apellido }}</h3>
+                            {% if forloop.first %}<span class="badge bg-success">Menor carga esta semana</span>{% endif %}
+                        </div>
+                        <div class="d-flex flex-wrap gap-3 text-muted small">
+                            <span>{{ resultado.cantidad_citas }} citas esta semana</span>
+                            <span>{{ resultado.minutos_ocupados }} min de carga semanal</span>
+                        </div>
+                    </div>
+                    <form method="post" action="{% url 'calendar' %}?general=1" class="m-0">
+                        {% csrf_token %}
+                        <input type="hidden" name="accion_agenda" value="abrir_agenda_operativo">
+                        <input type="hidden" name="operativo_id" value="{{ resultado.operativo.id_operativo }}">
+                        <button type="submit" class="btn btn-outline-primary">Abrir calendario</button>
+                    </form>
+                </article>
+            {% empty %}
+                <div class="alert alert-info mb-0">Todavía no hay personal operativo registrado.</div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block footer %}{% endblock %}

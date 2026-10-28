@@ -39,6 +39,15 @@ class Cliente(models.Model):
         db_table = 'Cliente'
         managed = False
 
+    @property
+    def sexo_display(self):
+        # Para registros anteriores con el valor retirado NB, no mostrar esa opción en la interfaz.
+        return {
+            'M': 'Masculino',
+            'F': 'Femenino',
+            'O': 'Otros',
+        }.get(self.sexo, 'Sin dato')
+
     def __str__(self):
         return f"{self.nombre} {self.apellido}"
 
@@ -104,6 +113,34 @@ class Factura(models.Model):
 
     def __str__(self):
         return f"Factura #{self.id_factura}"
+
+
+class PagoFactura(models.Model):
+    """Registro individual de un pago aplicado a una factura."""
+    id_pago = models.AutoField(primary_key=True, db_column='ID_PagoFactura')
+    factura = models.ForeignKey(
+        Factura,
+        on_delete=models.PROTECT,
+        db_column='ID_Factura',
+        to_field='id_factura',
+        related_name='pagos'
+    )
+    fecha_pago = models.DateTimeField(db_column='Fecha_Pago')
+    monto = models.DecimalField(max_digits=10, decimal_places=2, db_column='Monto')
+    metodo_pago = models.ForeignKey(
+        'MetodoPago',
+        on_delete=models.PROTECT,
+        db_column='ID_MetodoPago',
+        to_field='id_metodopago'
+    )
+
+    class Meta:
+        db_table = 'PagoFactura'
+        managed = False
+        ordering = ['-fecha_pago', '-id_pago']
+
+    def __str__(self):
+        return f"Pago #{self.id_pago} - Factura #{self.factura_id}"
     
 
 # ----------------------
@@ -192,6 +229,16 @@ class Cita(models.Model):
         on_delete=models.CASCADE,
         db_column='ID_Estado',
         to_field='id_estado',
+        null=True,
+        blank=True
+    )
+
+    cita_anterior = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        db_column='ID_Cita_Anterior',
+        to_field='id_cita',
+        related_name='seguimientos',
         null=True,
         blank=True
     )
@@ -307,6 +354,12 @@ class GastoMensual(models.Model):
     otros = models.DecimalField(max_digits=10, decimal_places=2, default=0, db_column='Otros')
     fecha_registro = models.DateTimeField(db_column='Fecha_Registro', blank=True, null=True)
     cerrado = models.BooleanField(default=False, db_column='Cerrado')
+    ingresos_cierre = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, db_column='Ingresos_Cierre')
+    salarios_cierre = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, db_column='Salarios_Cierre')
+    facturas_pagadas_cierre = models.IntegerField(blank=True, null=True, db_column='Facturas_Pagadas_Cierre')
+    facturas_pendientes_cierre = models.IntegerField(blank=True, null=True, db_column='Facturas_Pendientes_Cierre')
+    detalle_comisiones_cierre = models.TextField(blank=True, null=True, db_column='Detalle_Comisiones_Cierre')
+    ingresos_por_metodo_cierre = models.TextField(blank=True, null=True, db_column='Ingresos_Por_Metodo_Cierre')
     administrativo = models.ForeignKey(
         Administrativo,
         on_delete=models.SET_NULL,
@@ -322,6 +375,37 @@ class GastoMensual(models.Model):
 
     def __str__(self):
         return f"Gastos {self.mes}/{self.anio}"
+
+
+class Comision(models.Model):
+    ESTADOS = [
+        ('Calculada', 'Calculada'),
+        ('Pendiente', 'Pendiente'),
+        ('Pagada', 'Pagada'),
+    ]
+
+    id_comision = models.AutoField(primary_key=True, db_column='ID_Comision')
+    periodo = models.CharField(max_length=7, db_column='Periodo')
+    monto = models.DecimalField(max_digits=10, decimal_places=2, db_column='Monto')
+    estado = models.CharField(max_length=20, db_column='Estado', choices=ESTADOS, default='Calculada')
+    personal = models.ForeignKey(
+        Personal,
+        on_delete=models.PROTECT,
+        db_column='ID_Personal',
+        to_field='id_personal',
+        related_name='comisiones'
+    )
+
+    class Meta:
+        db_table = 'Comision'
+        managed = False
+        constraints = [
+            models.UniqueConstraint(fields=['periodo', 'personal'], name='UQ_Comision_Periodo_Personal')
+        ]
+        ordering = ['-periodo', 'personal__apellido', 'personal__nombre']
+
+    def __str__(self):
+        return f"Comisión {self.periodo} - {self.personal}"
 
 
 # -------------------------------
@@ -429,12 +513,22 @@ class ServicioOperativo(models.Model):
 #   TABLA: EXPEDIENTE CLINICO
 # -------------------------------
 class ExpedienteClinico(models.Model):
-    id_expediente = models.AutoField(primary_key=True, db_column='ID_Expediente')  # PK explícito
+    id_expediente = models.AutoField(primary_key=True, db_column='ID_RegistroClinico')  # PK existente en SQL Server
+    cita = models.ForeignKey(
+        Cita,
+        on_delete=models.SET_NULL,
+        db_column='ID_Cita',
+        to_field='id_cita',
+        related_name='expedientes',
+        null=True,
+        blank=True
+    )
     nombre_medico = models.CharField(max_length=100, blank=True, null=True)
     progreso = models.CharField(max_length=200, blank=True, null=True)
     fecha_de_atencion = models.DateField(blank=True, null=True)
     tratamiento = models.CharField(max_length=200, blank=True, null=True)
     diagnostico = models.CharField(max_length=200, blank=True, null=True)
+    observaciones = models.CharField(max_length=500, blank=True, null=True, db_column='Observaciones')
     operativo = models.ForeignKey(
         Operativo,
         on_delete=models.CASCADE,

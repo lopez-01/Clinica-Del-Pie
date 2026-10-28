@@ -1,169 +1,107 @@
 {% extends 'base.html' %}
 
-{% block title %}
-Factura
-{% endblock %}
+{% block title %}Factura #{{ factura.id_factura }}{% endblock %}
 
 {% block content %}
-
-<div class="container">
-
-    <div class="mb-3 d-flex gap-2">
-        <a href="{% url 'detalle_cita' factura.cita.id_cita %}"
-           class="btn btn-secondary">
-            ← Volver a la cita
-        </a>
-        <a href="{% url 'descargar_factura_pdf' factura.id_factura %}"
-           class="btn btn-primary">
-            Descargar PDF
-        </a>
+<div class="container py-4">
+    <div class="mb-3 d-flex flex-wrap gap-2">
+        <a href="{% url 'detalle_cita' factura.cita.id_cita %}" class="btn btn-outline-secondary btn-back" data-history-back>← Volver a la cita</a>
+        <a href="{% url 'descargar_factura_pdf' factura.id_factura %}" class="btn btn-outline-primary">Descargar factura PDF</a>
+        {% if request.user.personal.administrativo_set.exists %}
+            <a href="{% url 'listar_pagos' %}" class="btn btn-outline-primary">Consultar pagos</a>
+        {% endif %}
     </div>
 
-    <div class="card shadow">
-
-        <div class="card-header d-flex justify-content-between">
-
-            <h3 class="mb-0">
-                Factura #{{ factura.id_factura }}
-            </h3>
-
-            {% if factura.estado_pago.nombre == "Pagada" %}
-
-                <span class="badge bg-success fs-6">
-                    Pagada
-                </span>
-
-            {% elif factura.estado_pago.nombre == "Pendiente" %}
-
-                <span class="badge bg-warning text-dark fs-6">
-                    Pendiente
-                </span>
-
-            {% elif factura.estado_pago.nombre == "Anulada" %}
-
-                <span class="badge bg-danger fs-6">
-                    Anulada
-                </span>
-
+    <div class="card shadow-sm mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h1 class="h3 mb-0">Factura #{{ factura.id_factura }}</h1>
+            {% if factura.estado_pago.nombre == 'Pagada' %}
+                <span class="badge bg-success fs-6">Pagada</span>
+            {% elif factura.estado_pago.nombre == 'Pendiente' %}
+                <span class="badge bg-warning text-dark fs-6">Pendiente</span>
+            {% elif factura.estado_pago.nombre == 'Anulada' %}
+                <span class="badge bg-danger fs-6">Anulada</span>
             {% else %}
-
-                <span class="badge bg-secondary fs-6">
-                    {{ factura.estado_pago.nombre }}
-                </span>
-
+                <span class="badge bg-secondary fs-6">{{ factura.estado_pago.nombre|default:'Sin estado' }}</span>
             {% endif %}
-
         </div>
-
         <div class="card-body">
-
-            {% if factura.cita.estado.nombre_estado == "Cancelada" %}
-                <div class="alert alert-warning">
-                    Esta factura pertenece a una cita cancelada. No se puede procesar pago para esta factura.
+            {% if factura.cita.estado.nombre_estado == 'Cancelada' %}
+                <div class="alert alert-warning">Esta factura pertenece a una cita cancelada y no admite pagos.</div>
+            {% endif %}
+            {% if factura.estado_pago.nombre == 'Pendiente' and request.user.personal.administrativo_set.exists and factura.cita.estado.nombre_estado != 'Cancelada' %}
+                <div class="mb-3 d-flex gap-2 flex-wrap">
+                    {% if not hay_pagos_registrados %}
+                        <a href="{% url 'registrar_pago_factura' factura.id_factura %}" class="btn btn-success">Registrar pago completo</a>
+                    {% endif %}
+                    <a href="{% url 'anular_factura' factura.id_factura %}" class="btn btn-outline-danger">Anular factura</a>
                 </div>
+            {% elif factura.estado_pago.nombre == 'Pagada' and request.user.personal.administrativo_set.exists %}
+                <div class="mb-3"><a href="{% url 'anular_factura' factura.id_factura %}" class="btn btn-outline-danger">Anular factura</a></div>
             {% endif %}
 
-            {% if factura.estado_pago.nombre == "Pendiente" %}
-
-                <div class="mb-3 d-flex gap-2">
-
-                    {% if factura.cita.estado.nombre_estado != "Cancelada" %}
-                    <a href="{% url 'pagar_factura' factura.id_factura %}"
-                    class="btn btn-success">
-
-                        💳 Procesar pago
-
-                    </a>
-
-                    <a href="{% url 'anular_factura' factura.id_factura %}"
-                    class="btn btn-danger">
-
-                        ❌ Anular factura
-
-                    </a>
-
-                </div>
-
-            {% elif factura.estado_pago.nombre == "Pagada" %}
-
-                <div class="mb-3">
+            <div class="row g-3">
+                <div class="col-md-6"><span class="text-muted">Paciente</span><br><strong>{{ factura.cita.cliente.nombre }} {{ factura.cita.cliente.apellido }}</strong></div>
+                <div class="col-md-6"><span class="text-muted">Fecha de emisión</span><br>{{ factura.fecha_factura|date:'d/m/Y h:i A'|default:'No definida' }}</div>
+                <div class="col-md-6"><span class="text-muted">Total de factura</span><br><strong>C$ {{ factura.total|floatformat:2 }}</strong></div>
+                {% if factura.estado_pago.nombre == 'Pendiente' %}
+                    <div class="col-md-6"><span class="text-muted">Total pendiente de pago</span><br><strong class="text-danger">C$ {{ factura.total|floatformat:2 }}</strong></div>
+                    {% if hay_pagos_registrados %}
+                        <div class="col-12"><div class="alert alert-warning mb-0">Esta factura tiene registros de pago anteriores y requiere revisión administrativa. El sistema no permite pagos parciales ni registrar pagos adicionales.</div></div>
                     {% endif %}
-
-                    <a href="{% url 'anular_factura' factura.id_factura %}"
-                    class="btn btn-danger">
-
-                        Anular factura
-
-                    </a>
-                </div>
-
-            {% endif %}
-
-            
-            <div class="row">
-
-                <div class="col-md-6 mb-3">
-                    <strong>Cliente</strong><br>
-                    {{ factura.cita.cliente.nombre }}
-                    {{ factura.cita.cliente.apellido }}
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <strong>Fecha</strong><br>
-                    {{ factura.fecha_factura }}
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <strong>Método de pago</strong><br>
-
-                    {% if factura.metodo_pago %}
-                        {{ factura.metodo_pago.nombre }}
-                    {% else %}
-                        <span class="text-muted">
-                            No definido
-                        </span>
-                    {% endif %}
-                </div>
-
+                {% endif %}
+                {% if factura.metodo_pago %}
+                    <div class="col-md-6"><span class="text-muted">Método registrado en factura</span><br>{{ factura.metodo_pago.nombre }}</div>
+                {% endif %}
             </div>
-
         </div>
-
     </div>
 
-    <div class="card shadow mt-4">
-
-        <div class="card-header">
-            <h5 class="mb-0">
-                Servicios Facturados
-            </h5>
+    <div class="card shadow-sm mb-4">
+        <div class="card-header"><h2 class="h5 mb-0">Servicios facturados</h2></div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead><tr><th>Servicio</th><th class="text-end">Costo</th></tr></thead>
+                <tbody>
+                    {% for servicio in servicios %}
+                        <tr><td>{{ servicio.nombre }}</td><td class="text-end">C$ {{ servicio.costo|floatformat:2 }}</td></tr>
+                    {% empty %}
+                        <tr><td colspan="2" class="text-center text-muted">No hay servicios asociados.</td></tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot><tr><th>Total</th><th class="text-end">C$ {{ factura.total|floatformat:2 }}</th></tr></tfoot>
+            </table>
         </div>
-
-        <div class="card-body">
-
-            <ul class="list-group">
-
-                {% for servicio in servicios %}
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>{{ servicio.nombre }}</span>
-                        <strong>C$ {{ servicio.costo }}</strong>
-                    </li>
-                {% endfor %}
-
-            </ul>
-
-            <div class="mt-3 text-end">
-
-                <h3>
-                    Total: C$ {{ factura.total }}
-                </h3>
-
-            </div>
-
-        </div>
-
     </div>
 
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h2 class="h5 mb-0">Registro del pago</h2>
+            {% if request.user.personal.administrativo_set.exists %}<a href="{% url 'listar_pagos' %}" class="btn btn-sm btn-outline-primary">Ver todos</a>{% endif %}
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead><tr><th>Fecha de pago</th><th>Método</th><th class="text-end">Monto</th><th></th></tr></thead>
+                <tbody>
+                    {% for pago in pagos %}
+                        <tr>
+                            <td>{{ pago.fecha_pago|date:'d/m/Y' }}</td>
+                            <td>{{ pago.metodo_pago.nombre }}</td>
+                            <td class="text-end">C$ {{ pago.monto|floatformat:2 }}</td>
+                            <td>{% if request.user.personal.administrativo_set.exists %}<a href="{% url 'detalle_pago' pago.id_pago %}" class="btn btn-sm btn-outline-secondary">Ver pago #{{ pago.id_pago }}</a>{% endif %}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted py-3">
+                            {% if factura.estado_pago.nombre == 'Pagada' %}
+                                Esta factura se marcó como pagada antes de habilitar el registro detallado de pagos.
+                            {% else %}
+                                Aún no hay pagos registrados para esta factura.
+                            {% endif %}
+                        </td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
-
 {% endblock %}

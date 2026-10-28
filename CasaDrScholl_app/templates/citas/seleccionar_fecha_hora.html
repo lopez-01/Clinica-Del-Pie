@@ -6,6 +6,11 @@
 
 <div class="container mt-5">
 
+    <div class="mb-3">
+        <a href="{% if request.session.cliente_temp %}{% url 'inbox' %}{% elif request.session.operativo_id %}{% url 'agenda_operativo' %}{% else %}{% url 'crear_cita_cliente' %}{% endif %}"
+           class="btn btn-outline-secondary btn-back" data-history-back>← Volver</a>
+    </div>
+
     <!-- Título -->
     <div class="text-center mb-4">
         <h2 class="fw-bold">Seleccionar Fecha y Hora</h2>

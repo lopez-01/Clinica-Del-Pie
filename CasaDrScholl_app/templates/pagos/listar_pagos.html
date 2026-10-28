@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}Pagos registrados{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-3 d-flex gap-2 flex-wrap">
+        <a href="{% url 'listar_facturas' %}" class="btn btn-outline-secondary btn-back" data-history-back>← Volver a facturas</a>
+        <a href="{% url 'administrativo' %}" class="btn btn-outline-secondary">Panel administrativo</a>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <div><h1 class="h2 mb-1">Pagos registrados</h1><p class="text-muted mb-0">Consulta los pagos aplicados a las facturas de pacientes.</p></div>
+        <a href="{% url 'listar_facturas' %}?estado=Pendiente" class="btn btn-success">Buscar facturas pendientes</a>
+    </div>
+
+    <form method="get" class="card card-body shadow-sm mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label" for="buscar">Paciente, factura o pago</label>
+                <input class="form-control" id="buscar" name="buscar" value="{{ busqueda }}" placeholder="Nombre o número">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="metodo">Método</label>
+                <select class="form-select" id="metodo" name="metodo">
+                    <option value="">Todos</option>
+                    {% for metodo in metodos %}<option value="{{ metodo.id_metodopago }}" {% if metodo_id == metodo.id_metodopago|stringformat:'s' %}selected{% endif %}>{{ metodo.nombre }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="estado">Estado factura</label>
+                <select class="form-select" id="estado" name="estado">
+                    <option value="">Todos</option>
+                    <option value="Pendiente" {% if estado == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                    <option value="Pagada" {% if estado == 'Pagada' %}selected{% endif %}>Pagada</option>
+                    <option value="Anulada" {% if estado == 'Anulada' %}selected{% endif %}>Anulada</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button class="btn btn-primary" type="submit">Filtrar</button>
+                <a class="btn btn-outline-secondary" href="{% url 'listar_pagos' %}">Limpiar</a>
+            </div>
+        </div>
+    </form>
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Pago</th><th>Factura</th><th>Paciente</th><th>Fecha</th><th>Método</th><th class="text-end">Monto</th><th>Estado factura</th><th></th></tr></thead>
+                <tbody>
+                    {% for pago in pagos %}
+                        <tr>
+                            <td>#{{ pago.id_pago }}</td>
+                            <td><a href="{% url 'ver_factura' pago.factura.id_factura %}">#{{ pago.factura.id_factura }}</a></td>
+                            <td>{{ pago.factura.cita.cliente.nombre }} {{ pago.factura.cita.cliente.apellido }}</td>
+                            <td>{{ pago.fecha_pago|date:'d/m/Y' }}</td>
+                            <td>{{ pago.metodo_pago.nombre }}</td>
+                            <td class="text-end">C$ {{ pago.monto|floatformat:2 }}</td>
+                            <td>
+                                {% if pago.factura.estado_pago.nombre == 'Pagada' %}<span class="badge bg-success">Pagada</span>
+                                {% elif pago.factura.estado_pago.nombre == 'Pendiente' %}<span class="badge bg-warning text-dark">Pendiente</span>
+                                {% elif pago.factura.estado_pago.nombre == 'Anulada' %}<span class="badge bg-danger">Anulada</span>
+                                {% else %}<span class="badge bg-secondary">Sin estado</span>{% endif %}
+                            </td>
+                            <td><a class="btn btn-sm btn-outline-primary" href="{% url 'detalle_pago' pago.id_pago %}">Ver</a></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="8" class="text-center text-muted py-4">No hay pagos que coincidan con la búsqueda.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

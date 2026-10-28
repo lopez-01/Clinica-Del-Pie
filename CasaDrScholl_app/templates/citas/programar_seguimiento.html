@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Programar cita de seguimiento{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-3">
+        <a href="{% url 'detalle_cita' cita_anterior.id_cita %}" class="btn btn-secondary btn-back" data-history-back>← Volver a la cita</a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h3 class="mb-0">Programar cita de seguimiento</h3>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                Esta cita quedará vinculada a la cita atendida #{{ cita_anterior.id_cita }}.
+                Se conserva el paciente y se proponen el personal y los servicios anteriores; puedes ajustarlos.
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6"><strong>Paciente:</strong> {{ cita_anterior.cliente.nombre }} {{ cita_anterior.cliente.apellido }}</div>
+                <div class="col-md-6"><strong>Cita anterior:</strong> {{ cita_anterior.fechahora|date:"d/m/Y h:i A" }}</div>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+                {% for field in form %}
+                <div class="mb-3">
+                    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                    {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary">Programar seguimiento</button>
+                <a href="{% url 'detalle_cita' cita_anterior.id_cita %}" class="btn btn-outline-secondary" data-history-back>Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

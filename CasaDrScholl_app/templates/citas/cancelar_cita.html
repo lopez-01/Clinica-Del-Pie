@@ -10,7 +10,7 @@
             <h2>Cancelar cita</h2>
             <p>Indica el motivo para dejar registro administrativo de la cancelacion.</p>
         </div>
-        <a href="{% url 'operativo' %}" class="btn btn-secondary">
+        <a href="{% url 'operativo' %}" class="btn btn-secondary btn-back" data-history-back>
             Volver
         </a>
     </section>
@@ -48,7 +48,7 @@
                 <button type="submit" class="btn btn-danger">
                     Confirmar cancelacion
                 </button>
-                <a href="{% url 'operativo' %}" class="btn btn-secondary">
+                <a href="{% url 'operativo' %}" class="btn btn-secondary" data-history-back>
                     Cancelar
                 </a>
             </div>

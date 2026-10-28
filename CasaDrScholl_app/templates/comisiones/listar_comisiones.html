@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestión de comisiones{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-3 d-flex gap-2 flex-wrap">
+        {% if es_administrativo %}
+            <a href="{% url 'administrativo' %}" class="btn btn-outline-secondary" data-history-back>← Panel administrativo</a>
+        {% else %}
+            <a href="{% url 'operativo' %}" class="btn btn-outline-secondary" data-history-back>← Panel operativo</a>
+        {% endif %}
+    </div>
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <p class="section-kicker">Comisiones</p>
+            <h1 class="h2 mb-1">{% if es_administrativo %}Gestión de comisiones{% else %}Mis comisiones{% endif %}</h1>
+            <p class="text-muted mb-0">Consulta montos calculados a partir de servicios en facturas pagadas.</p>
+        </div>
+        {% if es_administrativo %}
+            <form method="post" class="d-flex align-items-end gap-2">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="calcular">
+                <input type="hidden" name="mes" value="{{ mes }}">
+                <input type="hidden" name="anio" value="{{ anio }}">
+                <button type="submit" class="btn btn-primary">Calcular período</button>
+            </form>
+        {% endif %}
+    </div>
+
+    <form method="get" class="card card-body shadow-sm mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label" for="mes">Mes</label>
+                <select class="form-select" id="mes" name="mes">
+                    {% for numero, nombre in meses %}<option value="{{ numero }}" {% if mes == numero %}selected{% endif %}>{{ nombre }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="anio">Año</label>
+                <select class="form-select" id="anio" name="anio">
+                    {% for opcion in anios %}<option value="{{ opcion }}" {% if anio == opcion %}selected{% endif %}>{{ opcion }}</option>{% endfor %}
+                </select>
+            </div>
+            {% if es_administrativo %}
+                <div class="col-md-3">
+                    <label class="form-label" for="personal">Personal operativo</label>
+                    <select class="form-select" id="personal" name="personal">
+                        <option value="">Todo el personal</option>
+                        {% for operativo in operativos %}<option value="{{ operativo.personal.id_personal }}" {% if personal_id == operativo.personal.id_personal|stringformat:'s' %}selected{% endif %}>{{ operativo.personal.nombre }} {{ operativo.personal.apellido }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="estado">Estado</label>
+                    <select class="form-select" id="estado" name="estado">
+                        <option value="">Todos</option>
+                        {% for valor, etiqueta in estados %}<option value="{{ valor }}" {% if estado == valor %}selected{% endif %}>{{ etiqueta }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="buscar">Buscar personal</label>
+                    <input class="form-control" id="buscar" name="buscar" value="{{ busqueda }}" placeholder="Nombre o apellido">
+                </div>
+            {% endif %}
+            <div class="col-md-auto d-flex gap-2">
+                <button class="btn btn-outline-primary" type="submit">Filtrar</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4"><div class="metric-card"><span>Período</span><strong>{{ mes|stringformat:'02d' }}/{{ anio }}</strong></div></div>
+        <div class="col-md-4"><div class="metric-card"><span>Comisiones listadas</span><strong>{{ comisiones|length }}</strong></div></div>
+        <div class="col-md-4"><div class="metric-card"><span>Monto acumulado</span><strong>C$ {{ total_periodo|floatformat:2 }}</strong></div></div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header"><h2 class="h5 mb-0">Comisiones del período</h2></div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Personal operativo</th><th>Período</th><th>Servicios</th><th class="text-end">Monto</th><th>Estado</th><th>Acción</th></tr></thead>
+                <tbody>
+                    {% for comision in comisiones %}
+                        <tr>
+                            <td>{{ comision.personal.nombre }} {{ comision.personal.apellido }}</td>
+                            <td>{{ comision.periodo }}</td>
+                            <td>{{ comision.cantidad_servicios }}</td>
+                            <td class="text-end">C$ {{ comision.monto|floatformat:2 }}</td>
+                            <td>
+                                {% if comision.estado == 'Pagada' %}<span class="badge bg-success">Pagada</span>
+                                {% elif comision.estado == 'Pendiente' %}<span class="badge bg-warning text-dark">Pendiente</span>
+                                {% else %}<span class="badge bg-primary">Calculada</span>{% endif %}
+                            </td>
+                            <td><a class="btn btn-sm btn-outline-primary" href="{% url 'detalle_comision' comision.id_comision %}?next={{ request.get_full_path|urlencode }}">Consultar{% if es_administrativo %} / gestionar{% endif %}</a></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">
+                            {% if es_administrativo %}No hay comisiones guardadas para los filtros seleccionados. Elige un período y pulsa “Calcular período”.{% else %}No hay comisiones registradas para este período.{% endif %}
+                        </td></tr>
+                    {% endfor %}
+                </tbody>
+                {% if comisiones %}<tfoot><tr><th colspan="3">Total del período filtrado</th><th class="text-end">C$ {{ total_periodo|floatformat:2 }}</th><th colspan="2"></th></tr></tfoot>{% endif %}
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

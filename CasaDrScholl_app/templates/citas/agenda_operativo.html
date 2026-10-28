@@ -8,6 +8,10 @@ Agenda
 
 <div class="container mt-4">
 
+    <div class="mb-3">
+        <a href="{% url 'seleccionar_operativo' %}" class="btn btn-outline-secondary btn-back" data-history-back>← Volver</a>
+    </div>
+
     {% if error %}
     <div class="alert alert-danger">
         {{ error }}
@@ -31,6 +35,8 @@ Agenda
                 name="fecha"
                 value="{{ fecha|date:'Y-m-d' }}"
                 class="form-control"
+                min="{{ fecha_minima|date:'Y-m-d' }}"
+                max="{{ fecha_maxima|date:'Y-m-d' }}"
             >
 
             <button

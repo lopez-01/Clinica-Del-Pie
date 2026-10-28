@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}Historial de {{ paciente.nombre }} {{ paciente.apellido }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <section class="dashboard-hero">
+        <div>
+            <p class="section-kicker">{% if es_administrativo %}Panel administrativo{% else %}Panel operativo{% endif %} · Pacientes</p>
+            <h2>{{ paciente.nombre }} {{ paciente.apellido }}</h2>
+            <p>{{ paciente.n_telefono|default:"Sin teléfono" }} · {{ paciente.email|default:"Sin correo" }}</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            {% if es_administrativo %}<a href="{% url 'editar_paciente_admin' paciente.id_cliente %}?cancel_to={{ request.get_full_path|urlencode }}&amp;after_save={{ return_url|urlencode }}" class="btn btn-primary">Actualizar datos</a>{% endif %}
+            <a href="{{ return_url }}" class="btn btn-secondary btn-back">Volver al listado</a>
+        </div>
+    </section>
+
+    <div class="table-panel mb-4">
+        <div class="table-panel-header">
+            <div>
+                <p class="section-kicker">{% if es_administrativo %}Atenciones{% else %}Tus atenciones{% endif %}</p>
+                <h3>Citas y servicios</h3>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Fecha</th><th>Estado</th><th>Operativo</th><th>Servicios</th><th>Facturas</th><th></th></tr></thead>
+                <tbody>
+                    {% for cita in citas %}
+                        <tr>
+                            <td>{{ cita.fechahora|date:"d/m/Y" }}<div class="text-muted small">{{ cita.fechahora|time:"h:i A" }}</div></td>
+                            <td>{{ cita.estado.nombre_estado|default:"Sin estado" }}</td>
+                            <td>{% if cita.operativo %}{{ cita.operativo.personal.nombre }} {{ cita.operativo.personal.apellido }}{% else %}Sin asignar{% endif %}</td>
+                            <td>
+                                {% for servicio in cita.servicios.all %}
+                                    <div>{{ servicio.nombre }}</div>
+                                {% empty %}<span class="text-muted">Sin servicios registrados</span>{% endfor %}
+                            </td>
+                            <td>
+                                {% for factura in cita.factura_set.all %}
+                                    <div><a href="{% url 'ver_factura' factura.id_factura %}">Factura #{{ factura.id_factura }}</a>
+                                        · {{ factura.estado_pago.nombre|default:"Sin estado" }}
+                                        · C$ {{ factura.total|floatformat:"2u" }}</div>
+                                {% empty %}<span class="text-muted">Sin factura</span>{% endfor %}
+                            </td>
+                            <td><a href="{% url 'detalle_cita' cita.id_cita %}" class="btn btn-sm btn-outline-primary">Ver cita</a></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="6" class="text-center py-4">Este paciente todavía no tiene citas registradas.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="table-panel">
+        <div class="table-panel-header">
+            <div>
+                <p class="section-kicker">Registros de atención</p>
+                <h3>Expediente clínico</h3>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Fecha</th><th>Profesional</th><th>Diagnóstico</th><th>Tratamiento</th><th>Progreso</th></tr></thead>
+                <tbody>
+                    {% for expediente in expedientes %}
+                        <tr>
+                            <td>{{ expediente.fecha_de_atencion|date:"d/m/Y"|default:"Sin fecha" }}</td>
+                            <td>{{ expediente.nombre_medico|default:expediente.operativo.personal.nombre }} {{ expediente.operativo.personal.apellido }}</td>
+                            <td>{{ expediente.diagnostico|default:"Sin registro" }}</td>
+                            <td>{{ expediente.tratamiento|default:"Sin registro" }}</td>
+                            <td>{{ expediente.progreso|default:"Sin registro" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="5" class="text-center py-4">No hay registros de expediente clínico para este paciente.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -2,7 +2,6 @@
 
 from django.urls import path
 from . import views
-from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('', views.home, name='home'),
@@ -14,11 +13,20 @@ urlpatterns = [
     path('crear-cita-desde-propuesta/<int:id>/', views.crear_cita_desde_propuesta, name='crear_cita_desde_propuesta'),
 
     path('administrativo/', views.administrativo_view, name='administrativo'),
+    path('administrativo/pacientes/', views.pacientes_admin, name='pacientes_admin'),
+    path('administrativo/pacientes/nuevo/', views.registrar_paciente_admin, name='registrar_paciente_admin'),
+    path('administrativo/pacientes/<int:id_cliente>/', views.detalle_paciente_admin, name='detalle_paciente_admin'),
+    path('administrativo/pacientes/<int:id_cliente>/editar/', views.editar_paciente_admin, name='editar_paciente_admin'),
     path('administrativo/finanzas/', views.finanzas_admin, name='finanzas_admin'),
+    path('comisiones/', views.gestionar_comisiones, name='gestionar_comisiones'),
+    path('comisiones/<int:id_comision>/', views.detalle_comision, name='detalle_comision'),
     path('administrativo/clientes-cuentas/', views.clientes_cuentas_admin, name='clientes_cuentas_admin'),
     path('operativo/', views.resumen_citas, name='operativo'),
     path('empleados/', views.gestionar_empleados, name='gestionar_empleados'),
+    path('empleados/nuevo/', views.registrar_empleado, name='registrar_empleado'),
     path('empleados/<int:id_personal>/', views.detalle_empleado, name='detalle_empleado'),
+    path('empleados/<int:id_personal>/editar/', views.editar_empleado, name='editar_empleado'),
+    path('empleados/<int:id_personal>/acceso/', views.gestionar_acceso_empleado, name='gestionar_acceso_empleado'),
     path('servicios/', views.servicios, name='servicios'),
 
     # Clientes
@@ -38,11 +46,18 @@ urlpatterns = [
     path('citas/confirmar_cita/', views.confirmar_cita, name='confirmar_cita'),
     path('citas/cerrar/<int:id_cita>/', views.cerrar_cita, name='cerrar_cita'),
     path('citas/<int:id_cita>/', views.detalle_cita, name='detalle_cita'),
+    path('citas/<int:id_cita>/agenda/', views.ver_cita_en_agenda, name='ver_cita_en_agenda'),
+    path('citas/<int:id_cita>/atencion/guardar/', views.guardar_atencion_cita, name='guardar_atencion_cita'),
+    path('citas/<int:id_cita>/seguimiento/', views.programar_seguimiento, name='programar_seguimiento'),
+    path('citas/seguimiento/cancelar/', views.cancelar_seguimiento, name='cancelar_seguimiento'),
     path('citas/generar_factura/<int:id_cita>/', views.generar_factura, name='generar_factura'),
     path('citas/ver_factura/<int:id_factura>/', views.ver_factura, name='ver_factura'),
     path('citas/ver_factura/<int:id_factura>/pdf/', views.descargar_factura_pdf, name='descargar_factura_pdf'),
     path('citas/listar_facturas/', views.listar_facturas, name='listar_facturas'),
     path('citas/pagar_factura/<int:id_factura>/', views.pagar_factura, name='pagar_factura'),
+    path('pagos/', views.listar_pagos, name='listar_pagos'),
+    path('facturas/<int:id_factura>/pagos/nuevo/', views.registrar_pago_factura, name='registrar_pago_factura'),
+    path('pagos/<int:id_pago>/', views.detalle_pago, name='detalle_pago'),
     path('citas/anular_factura/<int:id_factura>/', views.anular_factura, name='anular_factura'),
     path('calendario/', views.calendar_view, name='calendar'),
     path('citas/crear-ajax/', views.crear_cita_ajax, name='crear_cita_ajax'),

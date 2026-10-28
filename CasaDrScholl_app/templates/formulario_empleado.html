@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 850px;">
+    <div class="mb-3"><a href="{{ cancel_url }}" class="btn btn-link px-0 btn-back">← Volver</a></div>
+    <div class="card shadow-sm">
+        <div class="card-header bg-white"><h2 class="h4 mb-0">{{ titulo }}</h2></div>
+        <div class="card-body">
+            {% if empleado %}
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4 p-3 rounded" style="background:#dcebe8; border:1px solid #b2cfca;">
+                    <div><small class="text-uppercase text-muted d-block">Personal</small><strong>{{ empleado.nombre }} {{ empleado.apellido }}</strong></div>
+                    <div><small class="text-uppercase text-muted d-block">Ingreso</small><strong>{{ empleado.fecha_ingreso|date:"d/m/Y" }}</strong></div>
+                </div>
+            {% endif %}
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="cancel_to" value="{{ cancel_url }}">
+                <input type="hidden" name="after_save" value="{{ after_save }}">
+                {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+                {% if empleado %}
+                    <h3 class="h5 mb-3">Datos de contacto</h3>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="{{ form.n_telefonico.id_for_label }}">{{ form.n_telefonico.label }}</label>
+                            {{ form.n_telefonico }}
+                            {% for error in form.n_telefonico.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                            {{ form.email }}
+                            {% for error in form.email.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+
+                    {% if empleado.user %}
+                        <hr>
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                            <div>
+                                <h3 class="h5 mb-1">Cuenta de acceso</h3>
+                                {% if empleado.user.is_active %}
+                                    <span class="badge bg-success">Activa</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Desactivada</span>
+                                {% endif %}
+                            </div>
+                            {% if empleado.user.is_active %}
+                                {% if request.user.pk != empleado.user.pk %}
+                                    <a href="{% url 'gestionar_acceso_empleado' empleado.id_personal %}?next={{ request.get_full_path|urlencode }}&amp;after_save={{ after_save|urlencode }}" class="btn btn-outline-danger">Desactivar cuenta</a>
+                                {% endif %}
+                            {% else %}
+                                <a href="{% url 'gestionar_acceso_empleado' empleado.id_personal %}?next={{ request.get_full_path|urlencode }}&amp;after_save={{ after_save|urlencode }}" class="btn btn-outline-success">Reactivar cuenta</a>
+                            {% endif %}
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+                                {{ form.username }}
+                                {% for error in form.username.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">No hay una cuenta de acceso vinculada a este registro.</div>
+                    {% endif %}
+
+                    {% if operativo %}
+                        <hr>
+                        <h3 class="h5 mb-1">Servicios asignados</h3>
+                        <p class="text-muted small">Selecciona los servicios que puede atender este operativo.</p>
+                        <div class="row g-2 mb-3">
+                            {% for opcion in form.servicios_asignados %}
+                                <div class="col-md-6">
+                                    <label class="form-check p-2 rounded" style="background:#edf4f2;">
+                                        {{ opcion.tag }}
+                                        <span class="form-check-label">{{ opcion.choice_label }}</span>
+                                    </label>
+                                </div>
+                            {% empty %}
+                                <div class="col-12 text-muted">No hay servicios registrados.</div>
+                            {% endfor %}
+                        </div>
+                        {% for error in form.servicios_asignados.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    {% endif %}
+                {% else %}
+                    <p class="text-muted">Registra los datos personales y de contacto del nuevo integrante del equipo.</p>
+                    <div class="row">
+                        {% for field in form %}
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                                {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="d-flex gap-2 mt-3">
+                    <button type="submit" class="btn btn-primary">{{ texto_boton }}</button>
+                    <a href="{{ cancel_url }}" class="btn btn-outline-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

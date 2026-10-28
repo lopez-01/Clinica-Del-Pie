@@ -4,16 +4,40 @@
 {% block title %}Historial Administrativo{% endblock %}
 
 {% block content %}
+<style>
+    .admin-history-list { margin-bottom: 28px; }
+    .admin-history-table .history-client { color:#173e4b; font-weight:800; }
+    .admin-history-table .history-amount { color:#174b53; font-variant-numeric:tabular-nums; font-weight:750; }
+    .admin-history-table .history-count { background:#e5f3f0; border-radius:999px; color:#126c75; display:inline-block; font-weight:800; min-width:38px; padding:6px 10px; text-align:center; }
+    .admin-history-table .history-actions { min-width:170px; }
+    .admin-history-summary { color:#66818a; font-size:.88rem; }
+    .admin-history-pagination { align-items:center; display:flex; gap:12px; justify-content:flex-end; padding:16px 20px; }
+    .admin-history-pagination span { color:#66818a; font-size:.88rem; }
+    @media(max-width:991.98px) {
+        .admin-history-table thead, .admin-audit-table thead { display:none; }
+        .admin-history-table, .admin-history-table tbody, .admin-history-table tr, .admin-history-table td,
+        .admin-audit-table, .admin-audit-table tbody, .admin-audit-table tr, .admin-audit-table td { display:block; width:100%; }
+        .admin-history-table tbody, .admin-audit-table tbody { padding:10px; }
+        .admin-history-table tbody tr, .admin-audit-table tbody tr { background:#fff; border:1px solid #d5e2df; border-radius:10px; box-shadow:0 5px 16px rgba(18,50,62,.06); margin-bottom:12px; overflow:hidden; padding:8px 14px; }
+        .admin-history-table tbody td, .admin-audit-table tbody td { align-items:start; border:0; display:grid; gap:12px; grid-template-columns:minmax(100px,.65fr) minmax(0,1.35fr); padding:9px 0; }
+        .admin-history-table tbody td::before, .admin-audit-table tbody td::before { color:#66818a; content:attr(data-label); font-size:.78rem; font-weight:750; }
+        .admin-history-table tbody td.history-actions { display:block; min-width:0; padding-top:12px; }
+        .admin-history-table tbody td.history-actions::before { display:block; margin-bottom:8px; }
+        .admin-audit-table tbody td.audit-detail { display:block; }
+        .admin-audit-table tbody td.audit-detail::before { display:block; margin-bottom:6px; }
+        .admin-history-pagination { justify-content:space-between; padding:14px; }
+    }
+</style>
 <div class="container">
+    <div class="mb-3">
+        <a href="{% url 'administrativo' %}" class="btn btn-secondary btn-back">← Volver al panel</a>
+    </div>
     <section class="dashboard-hero">
         <div>
             <p class="section-kicker">Panel administrativo</p>
             <h2>Historial Administrativo</h2>
             <p>Consulta clientes por operativo, citas registradas, facturas y saldos pendientes.</p>
         </div>
-        <a href="{% url 'administrativo' %}" class="btn btn-secondary">
-            Volver
-        </a>
     </section>
 
     <form method="get" class="table-panel mb-4">
@@ -71,14 +95,16 @@
                 </div>
 
                 <div class="col-lg-2">
-                    <label class="form-label" for="orden_fecha">Fecha</label>
-                    <select class="form-select" id="orden_fecha" name="orden_fecha">
-                        <option value="recientes" {% if orden_fecha != "antiguas" %}selected{% endif %}>
+                    <label class="form-label" for="orden">Ordenar por</label>
+                    <select class="form-select" id="orden" name="orden">
+                        <option value="recientes" {% if orden == "recientes" %}selected{% endif %}>
                             Recientes primero
                         </option>
-                        <option value="antiguas" {% if orden_fecha == "antiguas" %}selected{% endif %}>
+                        <option value="antiguas" {% if orden == "antiguas" %}selected{% endif %}>
                             Antiguas primero
                         </option>
+                        <option value="citas" {% if orden == "citas" %}selected{% endif %}>Más citas</option>
+                        <option value="saldo_pendiente" {% if orden == "saldo_pendiente" %}selected{% endif %}>Mayor saldo pendiente</option>
                     </select>
                 </div>
 
@@ -129,16 +155,17 @@
         </div>
     </div>
 
-    <div class="table-panel">
+    <div class="table-panel admin-history-list">
         <div class="table-panel-header">
             <div>
                 <p class="section-kicker">Historial</p>
                 <h3>Resumen administrativo</h3>
             </div>
+            <span class="admin-history-summary">{% if total_resultados %}{{ primer_resultado }}–{{ ultimo_resultado }} de {{ total_resultados }}{% else %}0{% endif %} registros</span>
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0 admin-history-table">
                 <thead>
                     <tr>
                         <th>Cliente</th>
@@ -154,23 +181,23 @@
                 <tbody>
                     {% for item in clientes_resumen %}
                         <tr>
-                            <td>
-                                <strong>{{ item.cliente.nombre }} {{ item.cliente.apellido }}</strong>
-                                <div class="text-muted small">{{ item.cliente.sexo|default:"Sin sexo" }}</div>
+                            <td data-label="Cliente">
+                                <span class="history-client">{{ item.cliente.nombre }} {{ item.cliente.apellido }}</span>
+                                <div class="text-muted small">{{ item.cliente.sexo_display|default:"Sin dato de sexo" }}</div>
                             </td>
-                            <td>
+                            <td data-label="Contacto">
                                 <div>{{ item.cliente.n_telefono|default:"Sin telefono" }}</div>
                                 <div class="text-muted small">{{ item.cliente.email|default:"Sin correo" }}</div>
                             </td>
-                            <td>
+                            <td data-label="Operativo">
                                 {% if item.operativo %}
                                     {{ item.operativo.personal.nombre }} {{ item.operativo.personal.apellido }}
                                 {% else %}
                                     Sin operativo
                                 {% endif %}
                             </td>
-                            <td>
-                                <strong>{{ item.total_citas }}</strong>
+                            <td data-label="Citas">
+                                <span class="history-count">{{ item.total_citas }}</span>
                                 <div class="mt-1">
                                     {% if item.ultima_cita.estado.nombre_estado == "Atendida" %}
                                         <span class="badge bg-success">Atendida</span>
@@ -183,7 +210,7 @@
                                     {% endif %}
                                 </div>
                             </td>
-                            <td>
+                            <td data-label="Facturas">
                                 <strong>{{ item.total_facturas }}</strong>
                                 <div class="mt-1">
                                     {% if item.ultima_factura %}
@@ -201,16 +228,16 @@
                                     {% endif %}
                                 </div>
                             </td>
-                            <td>
-                                <div><strong>C$ {{ item.total_facturado|floatformat:"2u" }}</strong></div>
+                            <td data-label="Montos">
+                                <div><strong class="history-amount">C$ {{ item.total_facturado|floatformat:"2u" }}</strong></div>
                                 <div class="text-muted small">Pagado: C$ {{ item.total_pagado|floatformat:"2u" }}</div>
                                 <div class="text-muted small">Pendiente: C$ {{ item.total_pendiente|floatformat:"2u" }}</div>
                             </td>
-                            <td>
+                            <td data-label="Última cita">
                                 {{ item.ultima_cita.fechahora|date:"d/m/Y" }}
                                 <div class="text-muted small">{{ item.ultima_cita.fechahora|time:"h:i A" }}</div>
                             </td>
-                            <td>
+                            <td data-label="Acciones" class="history-actions">
                                 <div class="d-flex gap-2 flex-wrap">
                                     <a href="{% url 'detalle_cita' item.ultima_cita.id_cita %}" class="btn btn-sm btn-primary">
                                         Ver cita
@@ -225,7 +252,7 @@
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center py-4">
+                            <td colspan="8" class="text-center py-4" data-label="">
                                 No hay clientes con citas para los filtros seleccionados.
                             </td>
                         </tr>
@@ -233,6 +260,17 @@
                 </tbody>
             </table>
         </div>
+        {% if page_obj.paginator.num_pages > 1 %}
+            <nav class="admin-history-pagination" aria-label="Paginación del historial administrativo">
+                {% if page_obj.has_previous %}
+                    <a class="btn btn-outline-secondary" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">← Anterior</a>
+                {% else %}<span></span>{% endif %}
+                <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}
+                    <a class="btn btn-outline-secondary" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.next_page_number }}">Siguiente →</a>
+                {% else %}<span></span>{% endif %}
+            </nav>
+        {% endif %}
     </div>
 
     <div class="table-panel mt-4">
@@ -244,7 +282,7 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0 admin-audit-table">
                 <thead>
                     <tr>
                         <th>Fecha</th>
@@ -256,17 +294,17 @@
                 <tbody>
                     {% for accion in acciones_recientes %}
                         <tr>
-                            <td>
+                            <td data-label="Fecha">
                                 {{ accion.fecha|date:"d/m/Y" }}
                                 <div class="text-muted small">{{ accion.fecha|time:"h:i A" }}</div>
                             </td>
-                            <td>{{ accion.usuario }}</td>
-                            <td><span class="badge bg-primary">{{ accion.accion }}</span></td>
-                            <td>{{ accion.detalle|default:"Sin detalle" }}</td>
+                            <td data-label="Usuario">{{ accion.usuario }}</td>
+                            <td data-label="Acción"><span class="badge bg-primary">{{ accion.accion }}</span></td>
+                            <td data-label="Detalle" class="audit-detail">{{ accion.detalle|default:"Sin detalle" }}</td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="4" class="text-center py-4">
+                            <td colspan="4" class="text-center py-4" data-label="">
                                 Todavia no hay acciones registradas.
                             </td>
                         </tr>

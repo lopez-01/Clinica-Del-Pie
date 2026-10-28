@@ -9,18 +9,17 @@ Detalle Empleado
 <div class="container">
 
     <div class="mb-3">
-        <a href="{% url 'gestionar_empleados' %}"
-           class="btn btn-secondary">
+        <a href="{{ return_url }}"
+           class="btn btn-secondary btn-back">
             ← Volver
         </a>
     </div>
 
     <div class="card shadow">
 
-        <div class="card-header">
-            <h3>
-                {{ empleado.nombre }} {{ empleado.apellido }}
-            </h3>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">{{ empleado.nombre }} {{ empleado.apellido }}</h3>
+            <a href="{% url 'editar_empleado' empleado.id_personal %}?cancel_to={{ request.get_full_path|urlencode }}&amp;after_save={{ return_url|urlencode }}" class="btn btn-outline-primary btn-sm">Editar personal</a>
         </div>
 
         <div class="card-body">
@@ -34,6 +33,17 @@ Detalle Empleado
                         {{ empleado.user.username }}
                     {% else %}
                         <span class="text-muted">Sin usuario asignado</span>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Estado de la cuenta</strong><br>
+                    {% if empleado.user.is_active %}
+                        <span class="badge bg-success">Activa</span>
+                    {% elif empleado.user %}
+                        <span class="badge bg-secondary">Desactivada</span>
+                    {% else %}
+                        <span class="text-muted">No tiene cuenta asociada</span>
                     {% endif %}
                 </div>
 

@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <section class="dashboard-hero">
+        <div>
+            <p class="section-kicker">Panel administrativo</p>
+            <h2>{{ titulo }}</h2>
+            <p>Completa los datos del paciente. Los campos mostrarán sus errores de validación si requieren corrección.</p>
+        </div>
+        <a href="{{ cancel_url }}" class="btn btn-secondary btn-back">Volver</a>
+    </section>
+
+    <div class="table-panel">
+        <div class="table-panel-header">
+            <div>
+                <p class="section-kicker">Datos del paciente</p>
+                <h3>Información de contacto</h3>
+            </div>
+        </div>
+        <form method="post" class="p-4">
+            {% csrf_token %}
+            <input type="hidden" name="cancel_to" value="{{ cancel_url }}">
+            <input type="hidden" name="after_save" value="{{ after_save }}">
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+            <div class="row g-3">
+                {% for field in form %}
+                    <div class="col-md-6">
+                        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                        {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">{{ texto_boton }}</button>
+                <a href="{{ cancel_url }}" class="btn btn-outline-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
