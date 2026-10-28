@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,13 +20,47 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-vkjc!yn*!=&kot!m)r@g1f&ir*drj9u#d4j4$d5(*ksk%x)_s_'
+def env_bool(name, default=False):
+    return os.environ.get(name, str(default)).strip().lower() in {'1', 'true', 'yes', 'on'}
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'testserver']
+# Desarrollo local sigue funcionando sin un .env. En producción se exige una
+# clave propia para no reutilizar la clave de desarrollo que estuvo en el repo.
+DEBUG = env_bool('DJANGO_DEBUG', True)
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    if not DEBUG:
+        raise RuntimeError('Configura DJANGO_SECRET_KEY antes de iniciar en producción.')
+    SECRET_KEY = 'dev-only-clinica-dr-scholl-do-not-use-in-production'
+
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get(
+        'DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost,testserver'
+    ).split(',')
+    if host.strip()
+]
+if not DEBUG and not os.environ.get('DJANGO_ALLOWED_HOSTS'):
+    raise RuntimeError('Define DJANGO_ALLOWED_HOSTS con el dominio real antes de iniciar en producción.')
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',')
+    if origin.strip()
+]
+
+# Activar HTTPS/HSTS solo cuando el proxy o servidor ya fuerce HTTPS.
+SECURE_SSL_REDIRECT = env_bool('DJANGO_SECURE_SSL_REDIRECT', not DEBUG)
+SESSION_COOKIE_SECURE = env_bool('DJANGO_SESSION_COOKIE_SECURE', not DEBUG)
+CSRF_COOKIE_SECURE = env_bool('DJANGO_CSRF_COOKIE_SECURE', not DEBUG)
+SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_SECURE_HSTS_SECONDS', '0'))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS', False)
+SECURE_HSTS_PRELOAD = env_bool('DJANGO_SECURE_HSTS_PRELOAD', False)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'same-origin'
+if env_bool('DJANGO_TRUST_PROXY_SSL_HEADER', False):
+    # Solo cuando un proxy propio elimina cualquier valor entrante y define
+    # X-Forwarded-Proto; confiar en ese encabezado desde clientes es inseguro.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # Application definition
@@ -81,16 +116,26 @@ WSGI_APPLICATION = 'CasaDrScholl.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'mssql',
-        'NAME': 'ClinicaDrScholl',       # Cambia esto por el nombre real de tu base de datos
-        'HOST': 'localhost',                # O la IP/nombre de tu servidor SQL
-        'PORT': '1433',                    # Generalmente 1433, puedes omitirlo si quieres
+        'NAME': os.environ.get('DB_NAME', 'ClinicaDrScholl'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '1433'),
         'OPTIONS': {
-            'driver': 'ODBC Driver 17 for SQL Server',
-            'extra_params': 'Encrypt=no;TrustServerCertificate=yes',
-            'trusted_connection': 'yes',  # Para usar autenticación integrada de Windows
+            'driver': os.environ.get('DB_DRIVER', 'ODBC Driver 17 for SQL Server'),
+            'extra_params': os.environ.get(
+                'DB_EXTRA_PARAMS',
+                'Encrypt=no;TrustServerCertificate=yes' if DEBUG
+                else 'Encrypt=yes;TrustServerCertificate=no'
+            ),
+            'trusted_connection': os.environ.get(
+                'DB_TRUSTED_CONNECTION', 'no' if os.environ.get('DB_USER') else 'yes'
+            ),
         },
     },
 }
+
+if os.environ.get('DB_USER'):
+    DATABASES['default']['USER'] = os.environ['DB_USER']
+    DATABASES['default']['PASSWORD'] = os.environ.get('DB_PASSWORD', '')
 
 MIGRATION_MODULES = {
     'CasaDrScholl_app': None,
@@ -139,8 +184,21 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
+    'CasaDrScholl_app.auth_backends.ThrottledModelBackend',
 ]
+
+# Limitador básico por usuario/IP. En despliegues con varios procesos, definir
+# un backend de caché compartido para que el límite sea común a todos.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'clinica-login-throttle',
+        'TIMEOUT': 900,
+    }
+}
+LOGIN_THROTTLE_MAX_ATTEMPTS = int(os.environ.get('LOGIN_THROTTLE_MAX_ATTEMPTS', '5'))
+LOGIN_THROTTLE_MAX_IP_ATTEMPTS = int(os.environ.get('LOGIN_THROTTLE_MAX_IP_ATTEMPTS', '30'))
+LOGIN_THROTTLE_WINDOW_SECONDS = int(os.environ.get('LOGIN_THROTTLE_WINDOW_SECONDS', '900'))
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'

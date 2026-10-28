@@ -49,6 +49,7 @@ from urllib.parse import urlencode
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET, require_POST
+from .auth_backends import login_attempts_blocked
 import csv
 import json
 import re
@@ -694,9 +695,16 @@ def login_view(request):
     selected_username = ""
 
     if request.method == 'POST':
-        username = request.POST.get('username')
+        username = (request.POST.get('username') or '').strip()
         selected_username = username
-        password = request.POST.get('password')
+        password = request.POST.get('password') or ''
+
+        if login_attempts_blocked(request, username):
+            error = 'Demasiados intentos. Espera unos minutos antes de volver a intentarlo.'
+            return render(request, 'login.html', {
+                'error': error,
+                'selected_username': selected_username,
+            })
 
         user = authenticate(request, username=username, password=password)
 
@@ -1820,6 +1828,13 @@ def detalle_paciente_admin(request, id_cliente):
 def crear_solicitud_web(request):
     if request.method != 'POST':
         return redirect('landing')
+
+    if request.POST.get('website_url', '').strip():
+        messages.success(
+            request,
+            "Solicitud enviada correctamente. La clinica revisara tu solicitud y se pondra en contacto contigo para confirmar la cita."
+        )
+        return redirect(f"{reverse('landing')}#contacts")
 
     nombre = request.POST.get('nombre', '').strip()
     email = request.POST.get('email', '').strip()
@@ -3517,9 +3532,6 @@ def resumen_citas(request):
     # Las citas vencidas sin marcar manualmente como atendidas pasan a Pendiente.
     actualizar_citas_vencidas(operativo=operativo)
 
-    # 🔍 FILTRO POR ESTADO
-    estado_filtro = request.GET.get('estado')
-
     hoy = timezone.localdate()
     inicio_semana = hoy - timedelta(days=hoy.weekday())
     fin_semana = inicio_semana + timedelta(days=7)
@@ -3533,7 +3545,7 @@ def resumen_citas(request):
         fechahora__lt=fin_semana_dt,
     ).select_related('cliente').order_by('-fechahora')
 
-    citas_hoy = todas_las_citas.filter(fechahora__date=hoy)
+    citas_hoy = todas_las_citas.filter(fechahora__date=hoy).order_by('fechahora')
     citas_por_atender_hoy = citas_hoy.filter(
         Q(estado__nombre_estado='Programada') |
         Q(estado__nombre_estado='Pendiente') |
@@ -3542,27 +3554,31 @@ def resumen_citas(request):
     citas_atendidas_hoy = citas_hoy.filter(estado__nombre_estado='Atendida').count()
     citas_canceladas_hoy = citas_hoy.filter(estado__nombre_estado='Cancelada').count()
 
-    citas = todas_las_citas
-
-    if estado_filtro:
-        citas = citas.filter(estado__nombre_estado=estado_filtro)
-
     total_citas_hoy = citas_hoy.count()
-    citas_confirmadas = citas.filter(estado__nombre_estado='Programada').count()
-    citas_canceladas = citas.filter(estado__nombre_estado='Cancelada').count()
+    citas_por_atender_semana = todas_las_citas.filter(
+        Q(estado__nombre_estado='Programada') |
+        Q(estado__nombre_estado='Pendiente') |
+        Q(estado__isnull=True)
+    ).count()
+    citas_atendidas_semana = todas_las_citas.filter(
+        estado__nombre_estado='Atendida'
+    ).count()
+    citas_canceladas_semana = todas_las_citas.filter(
+        estado__nombre_estado='Cancelada'
+    ).count()
 
     return render(request, 'operativo.html', {
-        'citas': citas,
+        'citas_hoy': citas_hoy,
         'operativo': operativo,
         'hoy': hoy,
         'total_citas_hoy': total_citas_hoy,
         'citas_por_atender_hoy': citas_por_atender_hoy,
         'citas_atendidas_hoy': citas_atendidas_hoy,
         'citas_canceladas_hoy': citas_canceladas_hoy,
-        'total_citas_lista': citas.count(),
-        'citas_confirmadas': citas_confirmadas,
-        'citas_canceladas': citas_canceladas,
-        'estado_filtro': estado_filtro
+        'total_citas_semana': todas_las_citas.count(),
+        'citas_por_atender_semana': citas_por_atender_semana,
+        'citas_atendidas_semana': citas_atendidas_semana,
+        'citas_canceladas_semana': citas_canceladas_semana,
     })
 
 

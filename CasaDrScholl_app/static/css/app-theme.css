@@ -308,6 +308,8 @@ body.app-shell {
     color: rgba(255, 255, 255, 0.78);
     margin-top: auto;
     padding: 18px 12px;
+    position: relative;
+    z-index: 1035;
     text-align: center;
 }
 

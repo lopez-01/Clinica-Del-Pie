@@ -8,6 +8,7 @@
     .operativo-sidebar { background: #e3eeec; border-right: 1px solid #a8cbc5; box-shadow: 8px 0 22px rgba(18,50,62,.08); border-radius: 0; bottom: 0; left: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 13px; position: fixed; top: 78px; width: 250px; z-index: 1020; }
     .operativo-sidebar-title { color: #173e4b; font-size: 1rem; font-weight: 800; margin: 0 0 13px 5px; }
     .operativo-sidebar-kicker { color: #0f8f9f; display: block; font-size: .7rem; font-weight: 800; letter-spacing: .09em; margin: 0 0 4px 5px; text-transform: uppercase; }
+    .operativo-nav-group { color: #0f8f9f; font-size: .69rem; font-weight: 850; letter-spacing: .08em; margin: 12px 5px 1px; text-transform: uppercase; }
     .operativo-nav { display: grid; gap: 7px; }
     .operativo-nav-link { align-items: center; background: #f1f7f5; border: 1px solid #c3d8d4; border-radius: 10px; color: #244e58; display: flex; gap: 10px; min-height: 58px; padding: 9px; text-decoration: none; transition: background .16s ease, border-color .16s ease, transform .16s ease; }
     .operativo-nav-link:hover, .operativo-nav-link:focus-visible { background: #d6eae6; border-color: #0f8f9f; color: #123d4b; transform: translateX(2px); }
@@ -49,29 +50,49 @@
     .operativo-table .estado-cell { min-width: 190px; }
     .operativo-empty { color: #66818a; padding: 32px 18px !important; text-align: center; }
     .operativo-count { background: #e9f7f1; border-radius: 99px; color: #247351; font-size: .78rem; font-weight: 750; padding: 6px 10px; white-space: nowrap; }
+    .operativo-work-grid { display: grid; gap: 18px; grid-template-columns: minmax(0,1.35fr) minmax(270px,.85fr); }
+    .operativo-daily-panel { display: flex; flex-direction: column; height: 410px; min-height: 360px; }
+    .operativo-appointments-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+    .operativo-appointments-scroll:focus-visible { outline: 3px solid rgba(15,143,159,.35); outline-offset: -3px; }
+    .operativo-appointment { align-items: center; background: #f4f8f7; border-bottom: 1px solid #cbdcda; color: inherit; display: grid; gap: 12px; grid-template-columns: 78px minmax(0,1fr) auto; padding: 13px 18px; text-decoration: none; transition: background .15s ease; }
+    .operativo-appointment:nth-child(even) { background: #dcebe8; }
+    .operativo-appointment:hover, .operativo-appointment:focus-visible { background: #cfe6e2; color: inherit; outline: 2px solid #0f8f9f; outline-offset: -2px; }
+    .operativo-appointment time { color: #0c7785; font-size: .9rem; font-weight: 800; }
+    .operativo-appointment strong { color: #183d49; display: block; font-size: .93rem; }
+    .operativo-appointment small { color: #66818a; }
+    .operativo-status { background: #e9f7f1; border-radius: 99px; color: #247351; font-size: .75rem; font-weight: 750; padding: 5px 9px; white-space: nowrap; }
+    .operativo-status-pendiente { background: #fff2d8; color: #865400; }
+    .operativo-status-cancelada { background: #fff0ed; color: #a64232; }
+    .operativo-status-atendida { background: #eaf0f4; color: #526a76; }
+    .operativo-week-summary { display: grid; gap: 10px; padding: 14px; }
+    .operativo-week-item { align-items: center; background: #f4f8f7; border: 1px solid #cbdcda; border-radius: 9px; display: flex; justify-content: space-between; padding: 13px 14px; }
+    .operativo-week-item span { color: #405e67; font-size: .88rem; font-weight: 700; }
+    .operativo-week-item strong { color: #123d4b; font-size: 1.15rem; }
     @media (max-width: 1199px) { .operativo-sidebar { border: 1px solid #a8cbc5; border-radius: 14px; bottom: auto; left: auto; margin-bottom: 18px; overflow: visible; position: static; top: auto; width: auto; } .operativo-content { margin-left: 0; } .operativo-nav { grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); } }
     @media (max-width: 900px) { .operativo-summary { grid-template-columns: repeat(2,minmax(0,1fr)); } }
-    @media (max-width: 680px) { .operativo-layout { margin-top: 16px; } .operativo-nav { grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); } .operativo-hero { align-items: flex-start; flex-direction: column; } .operativo-stat { min-height: 102px; padding: 14px; } .operativo-stat strong { font-size: 1.65rem; } .operativo-table-scroll { height: 420px; } .operativo-panel-heading { align-items: flex-start; gap: 10px; } }
+    @media (max-width: 900px) { .operativo-work-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 680px) { .operativo-layout { margin-top: 16px; } .operativo-nav { grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); } .operativo-hero { align-items: flex-start; flex-direction: column; } .operativo-stat { min-height: 102px; padding: 14px; } .operativo-stat strong { font-size: 1.65rem; } .operativo-table-scroll { height: 420px; } .operativo-panel-heading { align-items: flex-start; gap: 10px; } .operativo-appointment { gap: 8px; grid-template-columns: 62px minmax(0,1fr); padding: 12px; } .operativo-status { grid-column: 2; justify-self: start; } .operativo-daily-panel { height: 380px; } }
 </style>
 {% endblock %}
-
-{% block footer %}{% endblock %}
 
 {% block content %}
 <div class="container operativo-home">
     <div class="operativo-layout">
         <aside class="operativo-sidebar" aria-label="Navegación del panel operativo">
             <span class="operativo-sidebar-kicker">Panel operativo</span>
-            <h2 class="operativo-sidebar-title">Accesos</h2>
+            <h2 class="operativo-sidebar-title">Módulos</h2>
             <nav class="operativo-nav">
+                <span class="operativo-nav-group">Atención diaria</span>
                 <a href="{% url 'calendar' %}?propio=1" class="operativo-nav-link">
                     <span class="operativo-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span>
                     <span><strong>Consultar agenda</strong><small>Semana y horarios</small></span>
                 </a>
+                <span class="operativo-nav-group">Pacientes</span>
                 <a href="{% url 'pacientes_admin' %}" class="operativo-nav-link">
                     <span class="operativo-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20v-1a6.5 6.5 0 0 1 13 0v1M16 5.5a3.5 3.5 0 0 1 0 6.8M18 14a5.5 5.5 0 0 1 3.5 5.1v.9"/></svg></span>
                     <span><strong>Pacientes asociados</strong><small>Datos e historial</small></span>
                 </a>
+                <span class="operativo-nav-group">Administración</span>
                 <a href="{% url 'gestionar_comisiones' %}" class="operativo-nav-link">
                     <span class="operativo-nav-icon" aria-hidden="true">C$</span>
                     <span><strong>Mis comisiones</strong><small>Consultar pagos</small></span>
@@ -83,8 +104,8 @@
     <section class="operativo-hero">
         <div>
             <p class="operativo-kicker">Panel operativo · {{ hoy|date:"d/m/Y" }}</p>
-            <h1>Tu agenda de atención</h1>
-            <p>Revisa tus citas, atiende a tus pacientes y consulta el estado de tu jornada.</p>
+            <h1>¿Qué necesitas atender hoy?</h1>
+            <p>Organiza tu jornada, revisa tus citas y consulta la información de tus pacientes.</p>
         </div>
         {% if operativo %}<span class="operativo-personal">{{ operativo.personal.nombre }} {{ operativo.personal.apellido }}</span>{% endif %}
     </section>
@@ -99,56 +120,33 @@
         </div>
     </section>
 
-    <section class="operativo-section" aria-labelledby="lista-citas">
-        <div class="operativo-panel">
+    <section class="operativo-section operativo-work-grid" aria-label="Gestión diaria">
+        <div class="operativo-panel operativo-daily-panel">
             <div class="operativo-panel-heading">
-                <div><h3 id="lista-citas">Agenda de esta semana</h3><p>Aquí aparecen solo las citas entre lunes y domingo de la semana actual.</p></div>
-                <span class="operativo-count">{{ total_citas_lista }} cita{{ total_citas_lista|pluralize }}</span>
+                <div><h3 id="lista-citas">Agenda de hoy · {{ total_citas_hoy }}</h3><p>Selecciona una cita para consultar sus detalles.</p></div>
             </div>
-            <nav class="operativo-filters" aria-label="Filtrar citas">
-                <a href="{% url 'operativo' %}" class="operativo-filter{% if not estado_filtro %} active{% endif %}">Todas esta semana</a>
-                <a href="{% url 'operativo' %}?estado=Programada" class="operativo-filter{% if estado_filtro == 'Programada' %} active{% endif %}">Programadas</a>
-                <a href="{% url 'operativo' %}?estado=Pendiente" class="operativo-filter{% if estado_filtro == 'Pendiente' %} active{% endif %}">Pendientes</a>
-                <a href="{% url 'operativo' %}?estado=Atendida" class="operativo-filter{% if estado_filtro == 'Atendida' %} active{% endif %}">Atendidas</a>
-                <a href="{% url 'operativo' %}?estado=Cancelada" class="operativo-filter{% if estado_filtro == 'Cancelada' %} active{% endif %}">Canceladas</a>
-            </nav>
-            <div class="operativo-table-scroll" role="region" aria-label="Lista de citas registradas" tabindex="0">
-                <table class="table table-hover align-middle operativo-table">
-                    <thead><tr><th>Paciente</th><th>Fecha</th><th>Hora</th><th>Estado</th><th>Acciones</th></tr></thead>
-                    <tbody>
-                    {% for cita in citas %}
-                        <tr>
-                            <td class="cliente-nombre">{{ cita.cliente.nombre }} {{ cita.cliente.apellido }}</td>
-                            <td>{{ cita.fechahora|date:"d/m/Y" }}</td>
-                            <td>{{ cita.fechahora|time:"h:i A" }}</td>
-                            <td class="estado-cell">
-                                {% if cita.estado %}
-                                    <div class="d-flex gap-2 align-items-center flex-wrap">
-                                        {% if cita.estado.nombre_estado == 'Programada' %}
-                                            <span class="badge bg-success">Programada</span>
-                                            <a href="{% url 'cerrar_cita' cita.id_cita %}" class="btn btn-sm btn-outline-danger">Cancelar</a>
-                                        {% elif cita.estado.nombre_estado == 'Pendiente' %}
-                                            <span class="badge bg-warning text-dark">Pendiente</span>
-                                            <a href="{% url 'cerrar_cita' cita.id_cita %}" class="btn btn-sm btn-outline-danger">Cancelar</a>
-                                        {% elif cita.estado.nombre_estado == 'Atendida' %}
-                                            <span class="badge bg-secondary">Atendida</span>
-                                        {% elif cita.estado.nombre_estado == 'Cancelada' %}
-                                            <span class="badge bg-danger">Cancelada</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">{{ cita.estado.nombre_estado }}</span>
-                                        {% endif %}
-                                    </div>
-                                {% else %}<span class="badge bg-secondary">Sin estado</span>{% endif %}
-                            </td>
-                            <td><a href="{% url 'detalle_cita' cita.id_cita %}" class="btn btn-sm btn-primary">Ver detalle</a></td>
-                        </tr>
-                    {% empty %}
-                        <tr><td colspan="5" class="operativo-empty">No hay citas que coincidan con este filtro.</td></tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+            <div class="operativo-appointments-scroll" role="region" aria-labelledby="lista-citas" tabindex="0">
+                {% for cita in citas_hoy %}
+                    <a class="operativo-appointment" href="{% url 'detalle_cita' cita.id_cita %}" aria-label="Ver cita de {{ cita.cliente.nombre }} {{ cita.cliente.apellido }} a las {{ cita.fechahora|date:'g:i A' }}">
+                        <time>{{ cita.fechahora|date:"g:i A" }}</time>
+                        <div><strong>{{ cita.cliente.nombre }} {{ cita.cliente.apellido }}</strong><small>Ver información de la cita</small></div>
+                        <span class="operativo-status{% if cita.estado.nombre_estado == 'Cancelada' %} operativo-status-cancelada{% elif cita.estado.nombre_estado == 'Pendiente' %} operativo-status-pendiente{% elif cita.estado.nombre_estado == 'Atendida' %} operativo-status-atendida{% endif %}">{% if cita.estado %}{{ cita.estado.nombre_estado }}{% else %}Programada{% endif %}</span>
+                    </a>
+                {% empty %}
+                    <div class="operativo-empty">No tienes citas para hoy.<br><a href="{% url 'calendar' %}?propio=1">Consultar agenda</a></div>
+                {% endfor %}
             </div>
         </div>
+
+        <aside class="operativo-panel" aria-labelledby="semana-titulo">
+            <div class="operativo-panel-heading"><div><h3 id="semana-titulo">Tu semana</h3><p>Resumen de la carga actual.</p></div></div>
+            <div class="operativo-week-summary">
+                <div class="operativo-week-item"><span>Total de citas</span><strong>{{ total_citas_semana }}</strong></div>
+                <div class="operativo-week-item"><span>Por atender</span><strong>{{ citas_por_atender_semana }}</strong></div>
+                <div class="operativo-week-item"><span>Atendidas</span><strong>{{ citas_atendidas_semana }}</strong></div>
+                <div class="operativo-week-item"><span>Canceladas</span><strong>{{ citas_canceladas_semana }}</strong></div>
+            </div>
+        </aside>
     </section>
         </main>
     </div>
